@@ -1,0 +1,127 @@
+// PartJob — Prisma Schema
+// CockroachDB (postgres-compatible)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "cockroachdb"
+}
+
+// ── Enums ─────────────────────────────────────────────────────────────────────
+
+enum Role {
+  STUDENT
+  RECRUITER
+  ADMIN
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PostStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PostType {
+  JOB
+  INTERNSHIP
+}
+
+// ── Models ────────────────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  recruiterProfile RecruiterProfile?
+  studentProfile   StudentProfile?
+
+  // back-relations for audit fields
+  approvedRecruiters   RecruiterProfile[] @relation("VerifiedBy")
+  approvedPosts        Post[]             @relation("ApprovedBy")
+  reviewedApplications Application[]      @relation("ReviewedBy")
+}
+
+model RecruiterProfile {
+  id                 String             @id @default(uuid())
+  userId             String             @unique
+  user               User               @relation(fields: [userId], references: [id])
+  companyName        String
+  businessDocUrl     String
+  verificationStatus VerificationStatus @default(PENDING)
+  verifiedById       String?
+  verifiedBy         User?              @relation("VerifiedBy", fields: [verifiedById], references: [id])
+  verifiedAt         DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  posts Post[]
+}
+
+model StudentProfile {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id])
+  university   String?
+  major        String?
+  defaultCvUrl String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  applications Application[]
+}
+
+model Post {
+  id           String           @id @default(uuid())
+  recruiterId  String
+  recruiter    RecruiterProfile @relation(fields: [recruiterId], references: [id])
+  title        String
+  description  String
+  type         PostType
+  imageUrl     String?
+  location     String?
+  status       PostStatus       @default(PENDING)
+  approvedById String?
+  approvedBy   User?            @relation("ApprovedBy", fields: [approvedById], references: [id])
+  approvedAt   DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  applications Application[]
+}
+
+model Application {
+  id             String            @id @default(uuid())
+  postId         String
+  post           Post              @relation(fields: [postId], references: [id])
+  studentId      String
+  student        StudentProfile    @relation(fields: [studentId], references: [id])
+  cvUrl          String
+  additionalDocs String[]
+  status         ApplicationStatus @default(PENDING)
+  reviewedById   String?
+  reviewedBy     User?             @relation("ReviewedBy", fields: [reviewedById], references: [id])
+  reviewedAt     DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@unique([postId, studentId])
+}
