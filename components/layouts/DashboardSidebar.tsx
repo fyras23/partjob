@@ -9,15 +9,17 @@ import { Avatar } from "@/components/ui/Avatar";
 import {
   LayoutDashboard, FileText, Users, ShieldCheck,
   ClipboardList, LogOut, Menu, X, Briefcase, UserCircle,
+  CreditCard,
 } from "lucide-react";
 import { useState } from "react";
 
 type Role = "RECRUITER" | "ADMIN";
 
 const RECRUITER_NAV = [
-  { href: "/dashboard",         label: "Overview",  icon: LayoutDashboard },
-  { href: "/dashboard/posts",   label: "My Posts",  icon: FileText },
-  { href: "/dashboard/profile", label: "Profile",   icon: UserCircle },
+  { href: "/dashboard",            label: "Overview",   icon: LayoutDashboard },
+  { href: "/dashboard/posts",      label: "My Posts",   icon: FileText },
+  { href: "/dashboard/membership", label: "Membership", icon: CreditCard },
+  { href: "/dashboard/profile",    label: "Profile",    icon: UserCircle },
 ];
 
 const ADMIN_NAV = [
@@ -25,6 +27,7 @@ const ADMIN_NAV = [
   { href: "/admin/recruiters",   label: "Recruiters",   icon: ShieldCheck },
   { href: "/admin/posts",        label: "Posts",        icon: FileText },
   { href: "/admin/applications", label: "Applications", icon: ClipboardList },
+  { href: "/admin/membership",   label: "Membership",   icon: CreditCard },
   { href: "/admin/users",        label: "Users",        icon: Users },
 ];
 

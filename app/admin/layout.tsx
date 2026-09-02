@@ -4,8 +4,13 @@ import { DashboardSidebar } from "@/components/layouts/DashboardSidebar";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
+
   if (!session?.user) redirect("/login");
-  if (session.user.role !== "ADMIN") redirect("/dashboard");
+
+  // Redirect non-admins to their correct home
+  if (session.user.role === "RECRUITER") redirect("/dashboard");
+  if (session.user.role === "STUDENT")   redirect("/jobs");
+  if (session.user.role !== "ADMIN")     redirect("/jobs");
 
   return (
     <div className="min-h-screen bg-bg flex">

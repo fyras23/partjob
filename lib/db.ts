@@ -17,15 +17,21 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is not set");
 }
 
-// ── Raw pg Pool ────────────────────────────────────────────────────────────────
+// ── Version tag — bump this whenever you regenerate Prisma ────────────────────
+// This forces a new client instance when the schema changes, clearing the
+// stale globalThis cache in Next.js dev mode.
+const SCHEMA_VERSION = "v7"; // bump if Prisma client is regenerated with new models
 
 declare global {
   // eslint-disable-next-line no-var
   var _pgPool: Pool | undefined;
   // eslint-disable-next-line no-var
   var _prisma: PrismaClient | undefined;
+  // eslint-disable-next-line no-var
+  var _prismaSchemaVersion: string | undefined;
 }
 
+// ── Raw pg Pool ────────────────────────────────────────────────────────────────
 export const pool: Pool =
   globalThis._pgPool ??
   new Pool({
@@ -34,28 +40,25 @@ export const pool: Pool =
     max: 10,
   });
 
-// ── Prisma Client (v7 — driver adapter required) ───────────────────────────────
+// ── Prisma Client (v7 — driver adapter required) ──────────────────────────────
+// Force a fresh client if the schema version changed (e.g. after prisma generate)
+const needsNewClient =
+  !globalThis._prisma ||
+  globalThis._prismaSchemaVersion !== SCHEMA_VERSION;
 
 export const prisma: PrismaClient =
-  globalThis._prisma ??
-  new PrismaClient({
-    adapter: new PrismaPg(pool),
-  });
+  needsNewClient
+    ? new PrismaClient({ adapter: new PrismaPg(pool) })
+    : globalThis._prisma!;
 
-// Cache instances in development to survive hot-reloads
+// Cache in development to survive hot-reloads
 if (process.env.NODE_ENV !== "production") {
   globalThis._pgPool = pool;
   globalThis._prisma = prisma;
+  globalThis._prismaSchemaVersion = SCHEMA_VERSION;
 }
 
 // ── Raw SQL helper ─────────────────────────────────────────────────────────────
-
-/**
- * Run a parameterised SQL query and return the rows.
- *
- * @example
- * const jobs = await query("SELECT * FROM jobs WHERE active = $1", [true]);
- */
 export async function query<T extends object = Record<string, unknown>>(
   text: string,
   params?: unknown[]

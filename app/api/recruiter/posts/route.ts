@@ -38,6 +38,11 @@ export async function POST(req: NextRequest) {
     return Errors.forbidden("Your recruiter account is not yet approved");
   }
 
+  // Must have an active subscription to create posts
+  if (profile.subscriptionStatus !== "ACTIVE") {
+    return Errors.forbidden("An active membership is required to post jobs.");
+  }
+
   const body = await req.json();
   const parsed = CreatePostSchema.safeParse(body);
   if (!parsed.success) return Errors.badRequest(zodMessage(parsed.error));

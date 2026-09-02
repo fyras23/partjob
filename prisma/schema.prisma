@@ -40,6 +40,18 @@ enum PostType {
   INTERNSHIP
 }
 
+enum SubscriptionPlan {
+  MONTHLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  INACTIVE
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
 // ── Models ────────────────────────────────────────────────────────────────────
 
 model User {
@@ -52,10 +64,8 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  recruiterProfile RecruiterProfile?
-  studentProfile   StudentProfile?
-
-  // back-relations for audit fields
+  recruiterProfile     RecruiterProfile?
+  studentProfile       StudentProfile?
   approvedRecruiters   RecruiterProfile[] @relation("VerifiedBy")
   approvedPosts        Post[]             @relation("ApprovedBy")
   reviewedApplications Application[]      @relation("ReviewedBy")
@@ -71,8 +81,17 @@ model RecruiterProfile {
   verifiedById       String?
   verifiedBy         User?              @relation("VerifiedBy", fields: [verifiedById], references: [id])
   verifiedAt         DateTime?
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+
+  // Membership / subscription
+  subscriptionStatus   SubscriptionStatus @default(INACTIVE)
+  subscriptionPlan     SubscriptionPlan?
+  subscriptionStart    DateTime?
+  subscriptionEnd      DateTime?
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   posts Post[]
 }
@@ -99,11 +118,11 @@ model Post {
   type         PostType
   imageUrl     String?
   location     String?
-  fields       String[]         // e.g. ["Software Engineering", "Customer Service"]
+  fields       String[]
   startDate    DateTime?
   endDate      DateTime?
-  hourlyRate   Float?           // DT per hour (for short gigs)
-  dailyRate    Float?           // DT per day (for short gigs)
+  hourlyRate   Float?
+  dailyRate    Float?
   status       PostStatus       @default(PENDING)
   approvedById String?
   approvedBy   User?            @relation("ApprovedBy", fields: [approvedById], references: [id])
@@ -130,4 +149,15 @@ model Application {
   updatedAt      DateTime          @updatedAt
 
   @@unique([postId, studentId])
+}
+
+/// Admin-controlled membership pricing — always a single row (id = "default")
+model MembershipConfig {
+  id              String   @id @default("default")
+  monthlyPrice    Float    @default(29)   // DT
+  yearlyPrice     Float    @default(290)  // DT
+  monthlyDiscount Float    @default(0)    // % off
+  yearlyDiscount  Float    @default(0)    // % off
+  currency        String   @default("DT")
+  updatedAt       DateTime @updatedAt
 }
