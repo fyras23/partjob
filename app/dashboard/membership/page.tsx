@@ -81,6 +81,7 @@ export default function MembershipPage() {
   const monthlyFinal = calcFinal(config?.monthlyPrice ?? 29, config?.monthlyDiscount ?? 0);
   const yearlyFinal  = calcFinal(config?.yearlyPrice  ?? 290, config?.yearlyDiscount  ?? 0);
   const yearlyMonthlyEq = (yearlyFinal / 12).toFixed(0);
+  const TND_TO_EUR = 0.30;
 
   const FEATURES = [
     "Post unlimited job & internship listings",
@@ -157,6 +158,9 @@ export default function MembershipPage() {
                 </span>
               </div>
             )}
+            <p className="text-xs text-ink-faint mt-2">
+              ≈ {(monthlyFinal * TND_TO_EUR).toFixed(2)} EUR charged via Stripe
+            </p>
           </div>
 
           <ul className="flex flex-col gap-2.5 flex-1">
@@ -221,6 +225,9 @@ export default function MembershipPage() {
                 </span>
               </div>
             )}
+            <p className="text-xs text-ink-faint mt-2">
+              ≈ {(yearlyFinal * TND_TO_EUR).toFixed(2)} EUR charged via Stripe
+            </p>
           </div>
 
           <ul className="flex flex-col gap-2.5 flex-1">

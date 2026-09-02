@@ -105,6 +105,7 @@ export default function AdminMembershipPage() {
   // Live preview
   const mFinal = (parseFloat(monthlyPrice) || 0) * (1 - (parseFloat(monthlyDiscount) || 0) / 100);
   const yFinal = (parseFloat(yearlyPrice)  || 0) * (1 - (parseFloat(yearlyDiscount)  || 0) / 100);
+  const TND_TO_EUR = 0.30;
 
   if (loading) return (
     <div className="flex flex-col gap-4 max-w-2xl">
@@ -174,9 +175,12 @@ export default function AdminMembershipPage() {
           </div>
           <div className="bg-surface-2 border border-border rounded-xl px-4 py-3 flex items-center justify-between">
             <span className="text-sm text-ink-muted">Recruiter pays</span>
-            <span className="font-heading text-lg font-bold text-accent">
-              {mFinal.toFixed(2)} {currency || "DT"}/month
-            </span>
+            <div className="text-right">
+              <span className="font-heading text-lg font-bold text-accent">
+                {mFinal.toFixed(2)} {currency || "DT"}
+              </span>
+              <p className="text-xs text-ink-faint">≈ {(mFinal * TND_TO_EUR).toFixed(2)} EUR charged via Stripe</p>
+            </div>
           </div>
         </div>
 
@@ -206,12 +210,15 @@ export default function AdminMembershipPage() {
           </div>
           <div className="bg-surface-2 border border-border rounded-xl px-4 py-3 flex items-center justify-between">
             <span className="text-sm text-ink-muted">Recruiter pays</span>
-            <span className="font-heading text-lg font-bold text-emerald">
-              {yFinal.toFixed(2)} {currency || "DT"}/year
-              <span className="text-sm font-normal text-ink-muted ml-2">
-                (≈ {(yFinal / 12).toFixed(0)} {currency || "DT"}/month)
+            <div className="text-right">
+              <span className="font-heading text-lg font-bold text-emerald">
+                {yFinal.toFixed(2)} {currency || "DT"}/year
+                <span className="text-sm font-normal text-ink-muted ml-2">
+                  (≈ {(yFinal / 12).toFixed(0)} {currency || "DT"}/month)
+                </span>
               </span>
-            </span>
+              <p className="text-xs text-ink-faint mt-0.5">≈ {(yFinal * TND_TO_EUR).toFixed(2)} EUR charged via Stripe</p>
+            </div>
           </div>
         </div>
 
