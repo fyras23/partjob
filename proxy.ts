@@ -4,9 +4,9 @@ import type { NextRequest } from "next/server";
 
 // Route prefix → required role
 const PROTECTED: Record<string, string> = {
-  "/api/admin": "ADMIN",
+  "/api/admin":    "ADMIN",
   "/api/recruiter": "RECRUITER",
-  "/api/student": "STUDENT",
+  "/api/student":  "STUDENT",
 };
 
 export default auth((req: NextRequest & { auth: { user?: { role?: string } } | null }) => {
@@ -28,13 +28,10 @@ export default auth((req: NextRequest & { auth: { user?: { role?: string } } | n
     }
   }
 
-  // /api/jobs/:id/apply requires STUDENT — handled inside the route itself
-  // Public GET /api/jobs passes through freely
   return NextResponse.next();
 });
 
 export const config = {
-  // Run on all API routes except NextAuth's own handler and UploadThing
   matcher: [
     "/api/admin/:path*",
     "/api/recruiter/:path*",

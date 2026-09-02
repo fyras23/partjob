@@ -3,8 +3,8 @@ import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { ApplySchema } from "@/lib/validate";
 import { Errors, zodMessage } from "@/lib/errors";
+import { pushNotification } from "@/lib/notificationBus";
 
-// POST /api/jobs/:id/apply
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -15,7 +15,10 @@ export async function POST(
 
   const { id: postId } = await params;
 
-  const post = await prisma.post.findUnique({ where: { id: postId } });
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    include: { recruiter: { select: { userId: true, companyName: true } } },
+  });
   if (!post) return Errors.notFound("Job");
   if (post.status !== "APPROVED") {
     return Errors.badRequest("This job is not currently accepting applications");
@@ -26,7 +29,6 @@ export async function POST(
   });
   if (!studentProfile) return Errors.notFound("Student profile");
 
-  // Check for duplicate application
   const existing = await prisma.application.findUnique({
     where: { postId_studentId: { postId, studentId: studentProfile.id } },
   });
@@ -44,6 +46,15 @@ export async function POST(
       additionalDocs: parsed.data.additionalDocs,
       status: "PENDING",
     },
+  });
+
+  // Notify the recruiter that someone applied to their post
+  pushNotification(post.recruiter.userId, {
+    type:    "NEW_APPLICATION",
+    status:  "PENDING",
+    postId,
+    title:   "New application received",
+    message: `${session.user.name} applied to "${post.title}"`,
   });
 
   return NextResponse.json(application, { status: 201 });

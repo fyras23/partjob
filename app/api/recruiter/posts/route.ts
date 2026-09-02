@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { CreatePostSchema } from "@/lib/validate";
 import { Errors, zodMessage } from "@/lib/errors";
+import { pushToAllAdmins } from "@/lib/notificationBus";
 
 // GET /api/recruiter/posts — list own posts
 export async function GET() {
@@ -45,6 +46,14 @@ export async function POST(req: NextRequest) {
     data: { ...parsed.data, recruiterId: profile.id, status: "PENDING" },
   });
 
+  // Notify all admins in real time
+  await pushToAllAdmins(prisma, {
+    type:    "NEW_POST",
+    status:  "PENDING",
+    postId:  post.id,
+    title:   "New post pending review",
+    message: `${profile.companyName} submitted a new ${post.type.toLowerCase()} post: "${post.title}"`,
+  });
+
   return NextResponse.json(post, { status: 201 });
 }
-

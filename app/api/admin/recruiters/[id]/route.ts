@@ -3,8 +3,8 @@ import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { ReviewSchema } from "@/lib/validate";
 import { Errors, zodMessage } from "@/lib/errors";
+import { pushNotification } from "@/lib/notificationBus";
 
-// PATCH /api/admin/recruiters/:id — approve or reject recruiter verification
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -29,6 +29,16 @@ export async function PATCH(
       verifiedById: session.user.id,
       verifiedAt: new Date(),
     },
+  });
+
+  // Push real-time notification to the recruiter
+  pushNotification(profile.userId, {
+    type:    "VERIFICATION_UPDATE",
+    status:  parsed.data.status,
+    title:   parsed.data.status === "APPROVED" ? "Account approved!" : "Verification rejected",
+    message: parsed.data.status === "APPROVED"
+      ? "Your recruiter account has been approved. You can now post jobs."
+      : "Your verification was rejected. Please resubmit with updated documents.",
   });
 
   return NextResponse.json(updated);

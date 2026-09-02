@@ -9,7 +9,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Credentials({
       credentials: {
-        email: { label: "Email", type: "email" },
+        email:    { label: "Email",    type: "email"    },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
@@ -18,7 +18,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const user = await prisma.user.findUnique({
           where: { email: credentials.email as string },
         });
-
         if (!user) return null;
 
         const valid = await bcrypt.compare(
@@ -27,29 +26,43 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         );
         if (!valid) return null;
 
-        return { id: user.id, email: user.email, name: user.name, role: user.role };
+        return {
+          id:        user.id,
+          email:     user.email,
+          name:      user.name,
+          role:      user.role,
+          avatarUrl: user.avatarUrl ?? null,
+        };
       },
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
       if (user) {
-        token.id = user.id;
-        token.role = (user as { role: Role }).role;
+        token.id        = user.id;
+        token.role      = (user as { role: Role }).role;
+        token.avatarUrl = (user as { avatarUrl?: string | null }).avatarUrl ?? null;
+      }
+      // Allow refreshing the token so avatarUrl updates are picked up
+      if (trigger === "update") {
+        const fresh = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: { avatarUrl: true },
+        });
+        token.avatarUrl = fresh?.avatarUrl ?? null;
       }
       return token;
     },
     async session({ session, token }) {
       if (token) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as Role;
+        session.user.id        = token.id as string;
+        session.user.role      = token.role as Role;
+        session.user.avatarUrl = (token.avatarUrl ?? null) as string | null;
       }
       return session;
     },
   },
-  pages: {
-    signIn: "/login",
-  },
+  pages: { signIn: "/login" },
 });
 
 // ── Type augmentation ─────────────────────────────────────────────────────────
@@ -57,6 +70,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 declare module "next-auth" {
   interface User {
     role: Role;
+    avatarUrl?: string | null;
   }
   interface Session {
     user: {
@@ -64,9 +78,7 @@ declare module "next-auth" {
       email: string;
       name: string;
       role: Role;
+      avatarUrl: string | null;
     };
   }
 }
-
-// JWT type extension — next-auth v5 exports JWT from "next-auth/jwt"
-// The module may not be resolvable in all setups; cast in callbacks instead.
