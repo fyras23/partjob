@@ -28,18 +28,26 @@ export async function PATCH(
   const parsed = UpdatePostSchema.safeParse(body);
   if (!parsed.success) return Errors.badRequest(zodMessage(parsed.error));
 
+  const d = parsed.data;
+
   // Editing an APPROVED post resets it to PENDING for re-review
   const newStatus = post.status === "APPROVED" ? "PENDING" : post.status;
 
   const updated = await prisma.post.update({
     where: { id },
     data: {
-      ...parsed.data,
+      ...(d.title       !== undefined && { title:       d.title }),
+      ...(d.description !== undefined && { description: d.description }),
+      ...(d.type        !== undefined && { type:        d.type }),
+      ...(d.location    !== undefined && { location:    d.location    ?? null }),
+      ...(d.imageUrl    !== undefined && { imageUrl:    d.imageUrl    ?? null }),
+      ...(d.fields      !== undefined && { fields:      d.fields }),
+      ...(d.startDate   !== undefined && { startDate:   d.startDate ? new Date(d.startDate) : null }),
+      ...(d.endDate     !== undefined && { endDate:     d.endDate   ? new Date(d.endDate)   : null }),
+      ...(d.hourlyRate  !== undefined && { hourlyRate:  d.hourlyRate  ?? null }),
+      ...(d.dailyRate   !== undefined && { dailyRate:   d.dailyRate   ?? null }),
       status: newStatus,
-      // Clear approval audit if being reset
-      ...(post.status === "APPROVED"
-        ? { approvedById: null, approvedAt: null }
-        : {}),
+      ...(post.status === "APPROVED" && { approvedById: null, approvedAt: null }),
     },
   });
 

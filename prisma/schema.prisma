@@ -99,6 +99,11 @@ model Post {
   type         PostType
   imageUrl     String?
   location     String?
+  fields       String[]         // e.g. ["Software Engineering", "Customer Service"]
+  startDate    DateTime?
+  endDate      DateTime?
+  hourlyRate   Float?           // DT per hour (for short gigs)
+  dailyRate    Float?           // DT per day (for short gigs)
   status       PostStatus       @default(PENDING)
   approvedById String?
   approvedBy   User?            @relation("ApprovedBy", fields: [approvedById], references: [id])

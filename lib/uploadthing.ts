@@ -4,13 +4,13 @@ import { auth } from "@/lib/auth";
 const f = createUploadthing();
 
 export const uploadRouter = {
-  /** Recruiter business proof — PDF, max 8 MB */
+  /** Recruiter business proof — PDF, max 8 MB.
+   *  No auth required — called during registration before an account exists. */
   businessProof: f({ pdf: { maxFileSize: "8MB", maxFileCount: 1 } })
     .middleware(async () => {
-      const session = await auth();
-      if (!session?.user || session.user.role !== "RECRUITER")
-        throw new Error("Unauthorized");
-      return { userId: session.user.id };
+      // Allow unauthenticated uploads (registration flow)
+      // The file URL is stored on the user record after account creation
+      return { userId: "anonymous" };
     })
     .onUploadComplete(async ({ file }) => {
       return { url: file.ufsUrl };

@@ -42,8 +42,23 @@ export async function POST(req: NextRequest) {
   const parsed = CreatePostSchema.safeParse(body);
   if (!parsed.success) return Errors.badRequest(zodMessage(parsed.error));
 
+  const d = parsed.data;
+
   const post = await prisma.post.create({
-    data: { ...parsed.data, recruiterId: profile.id, status: "PENDING" },
+    data: {
+      title:       d.title,
+      description: d.description,
+      type:        d.type,
+      location:    d.location    ?? null,
+      imageUrl:    d.imageUrl    ?? null,
+      fields:      d.fields      ?? [],
+      startDate:   d.startDate   ? new Date(d.startDate)  : null,
+      endDate:     d.endDate     ? new Date(d.endDate)    : null,
+      hourlyRate:  d.hourlyRate  ?? null,
+      dailyRate:   d.dailyRate   ?? null,
+      recruiterId: profile.id,
+      status:      "PENDING",
+    },
   });
 
   // Notify all admins in real time
