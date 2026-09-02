@@ -28,16 +28,17 @@ export const VerifySchema = z.object({
 });
 
 export const CreatePostSchema = z.object({
-  title:       z.string().min(1),
-  description: z.string().min(1),
-  type:        z.enum(["JOB", "INTERNSHIP"]),
-  imageUrl:    z.string().url().optional(),
-  location:    z.string().optional(),
-  fields:      z.array(z.string()).default([]),
-  startDate:   z.string().datetime({ offset: true }).optional().nullable(),
-  endDate:     z.string().datetime({ offset: true }).optional().nullable(),
-  hourlyRate:  z.number().nonnegative().optional().nullable(),
-  dailyRate:   z.number().nonnegative().optional().nullable(),
+  title:         z.string().min(1),
+  description:   z.string().min(1),
+  type:          z.enum(["JOB", "INTERNSHIP"]),
+  imageUrl:      z.string().url().optional(),
+  location:      z.string().optional(),
+  fields:        z.array(z.string()).default([]),
+  startDate:     z.string().datetime({ offset: true }).optional().nullable(),
+  endDate:       z.string().datetime({ offset: true }).optional().nullable(),
+  hourlyRate:    z.number().nonnegative().optional().nullable(),
+  dailyRate:     z.number().nonnegative().optional().nullable(),
+  maxApplicants: z.number().int().positive().optional().nullable(),
 });
 
 export const UpdatePostSchema = CreatePostSchema.partial();

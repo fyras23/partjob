@@ -18,6 +18,7 @@ interface PostData {
   type: PostType; location?: string; status: string;
   fields: string[]; startDate?: string | null;
   endDate?: string | null; hourlyRate?: number | null; dailyRate?: number | null;
+  maxApplicants?: number | null;
 }
 
 function toDateInput(iso?: string | null) {
@@ -39,6 +40,7 @@ export default function EditPostPage() {
   const [endDate,       setEndDate]       = useState("");
   const [hourlyRate,    setHourlyRate]    = useState("");
   const [dailyRate,     setDailyRate]     = useState("");
+  const [maxApplicants, setMaxApplicants] = useState("");
   const [imageFile,     setImageFile]     = useState<File[]>([]);
   const [errors,        setErrors]        = useState<Record<string, string>>({});
   const [loading,       setLoading]       = useState(true);
@@ -63,6 +65,7 @@ export default function EditPostPage() {
           setEndDate(toDateInput(p.endDate));
           setHourlyRate(p.hourlyRate != null ? String(p.hourlyRate) : "");
           setDailyRate(p.dailyRate  != null ? String(p.dailyRate)  : "");
+          setMaxApplicants(p.maxApplicants != null ? String(p.maxApplicants) : "");
         }
         setLoading(false);
       })
@@ -95,13 +98,14 @@ export default function EditPostPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title, description, type,
-        location:   location   || undefined,
+        location:      location      || undefined,
         ...(imageUrl ? { imageUrl } : {}),
         fields,
-        startDate:  startDate  ? new Date(startDate).toISOString() : null,
-        endDate:    endDate    ? new Date(endDate).toISOString()   : null,
-        hourlyRate: hourlyRate ? parseFloat(hourlyRate)            : null,
-        dailyRate:  dailyRate  ? parseFloat(dailyRate)             : null,
+        startDate:     startDate     ? new Date(startDate).toISOString() : null,
+        endDate:       endDate       ? new Date(endDate).toISOString()   : null,
+        hourlyRate:    hourlyRate    ? parseFloat(hourlyRate)            : null,
+        dailyRate:     dailyRate     ? parseFloat(dailyRate)             : null,
+        maxApplicants: maxApplicants ? parseInt(maxApplicants)           : null,
       }),
     });
     setSubmitting(false);
@@ -199,6 +203,22 @@ export default function EditPostPage() {
               📅 Duration: <strong className="text-ink">{days} day{days !== 1 ? "s" : ""}</strong>
             </p>;
           })()}
+
+          {/* Positions */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-ink">Number of positions</label>
+            <div className="relative max-w-[200px]">
+              <input
+                type="number" min="1" step="1"
+                value={maxApplicants}
+                onChange={(e) => setMaxApplicants(e.target.value)}
+                placeholder="e.g. 2"
+                className="w-full pl-3 pr-14 py-2.5 text-sm bg-surface-2 border border-border rounded-lg text-ink placeholder-ink-faint outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-muted font-medium">spots</span>
+            </div>
+            <p className="text-xs text-ink-faint">Leave blank for unlimited.</p>
+          </div>
         </section>
 
         {/* Compensation */}

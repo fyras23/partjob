@@ -61,6 +61,7 @@ export async function POST(req: NextRequest) {
       endDate:     d.endDate     ? new Date(d.endDate)    : null,
       hourlyRate:  d.hourlyRate  ?? null,
       dailyRate:   d.dailyRate   ?? null,
+      maxApplicants: d.maxApplicants ?? null,
       recruiterId: profile.id,
       status:      "PENDING",
     },

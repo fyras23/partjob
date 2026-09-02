@@ -13,6 +13,7 @@ import { Avatar } from "@/components/ui/Avatar";
 const NAV = [
   { href: "/jobs",                   label: "Browse Jobs" },
   { href: "/dashboard/applications", label: "Applications" },
+  { href: "/messages",               label: "Messages" },
   { href: "/dashboard/profile",      label: "Profile" },
 ];
 

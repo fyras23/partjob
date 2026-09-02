@@ -29,6 +29,7 @@ export default function NewPostPage() {
   const [endDate,     setEndDate]     = useState("");
   const [hourlyRate,  setHourlyRate]  = useState("");
   const [dailyRate,   setDailyRate]   = useState("");
+  const [maxApplicants, setMaxApplicants] = useState("");
 
   const [errors,     setErrors]     = useState<Record<string, string>>({});
   const [uploading,  setUploading]  = useState(false);
@@ -67,8 +68,9 @@ export default function NewPostPage() {
         fields,
         startDate:  startDate  ? new Date(startDate).toISOString() : null,
         endDate:    endDate    ? new Date(endDate).toISOString()   : null,
-        hourlyRate: hourlyRate ? parseFloat(hourlyRate)            : null,
-        dailyRate:  dailyRate  ? parseFloat(dailyRate)             : null,
+        hourlyRate: hourlyRate ? parseFloat(hourlyRate) : null,
+        dailyRate:  dailyRate  ? parseFloat(dailyRate)  : null,
+        maxApplicants: maxApplicants ? parseInt(maxApplicants) : null,
       }),
     });
     setSubmitting(false);
@@ -168,6 +170,24 @@ export default function NewPostPage() {
               </p>
             );
           })()}
+
+          {/* Positions */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-ink flex items-center gap-1.5">
+              Number of positions
+            </label>
+            <div className="relative max-w-[200px]">
+              <input
+                type="number" min="1" step="1"
+                value={maxApplicants}
+                onChange={(e) => setMaxApplicants(e.target.value)}
+                placeholder="e.g. 2"
+                className="w-full pl-3 pr-14 py-2.5 text-sm bg-surface-2 border border-border rounded-lg text-ink placeholder-ink-faint outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-all"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-ink-muted font-medium">spots</span>
+            </div>
+            <p className="text-xs text-ink-faint">Leave blank for unlimited. Once this many applicants are approved, applications close automatically.</p>
+          </div>
         </section>
 
         {/* ── Compensation ─────────────────────────────────────────────── */}

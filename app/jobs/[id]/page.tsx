@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
   MapPin, Calendar, Building2, ArrowLeft,
-  Clock, DollarSign, CalendarRange,
+  Clock, DollarSign, CalendarRange, Users, XCircle,
 } from "lucide-react";
 import { TypeBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
@@ -17,6 +17,9 @@ interface Post {
   fields: string[];
   startDate?: string | null; endDate?: string | null;
   hourlyRate?: number | null; dailyRate?: number | null;
+  maxApplicants?: number | null;
+  approvedCount?: number;
+  isFull?: boolean;
   recruiter: { companyName: string };
 }
 
@@ -108,8 +111,28 @@ export default function JobDetailPage() {
           )}
 
           {/* Duration & compensation quick stats */}
-          {(startFmt || post.hourlyRate || post.dailyRate) && (
+          {(startFmt || post.hourlyRate || post.dailyRate || post.maxApplicants != null) && (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {post.maxApplicants != null && (
+                <div className={`border rounded-xl p-3 flex flex-col gap-1 ${
+                  post.isFull
+                    ? "bg-error/10 border-error/25"
+                    : "bg-emerald/10 border-emerald/25"
+                }`}>
+                  <p className={`text-[11px] uppercase tracking-wide font-medium flex items-center gap-1 ${
+                    post.isFull ? "text-error/70" : "text-emerald/70"
+                  }`}>
+                    <Users className="w-3 h-3" /> Spots
+                  </p>
+                  {post.isFull ? (
+                    <p className="text-sm font-bold text-error">Filled</p>
+                  ) : (
+                    <p className="text-sm font-bold text-emerald">
+                      {post.maxApplicants - (post.approvedCount ?? 0)}/{post.maxApplicants} left
+                    </p>
+                  )}
+                </div>
+              )}
               {startFmt && (
                 <div className="bg-surface border border-border rounded-xl p-3 flex flex-col gap-1">
                   <p className="text-[11px] text-ink-faint uppercase tracking-wide font-medium flex items-center gap-1">
@@ -212,10 +235,40 @@ export default function JobDetailPage() {
               </div>
             )}
 
-            <Button className="w-full" size="lg" onClick={() => router.push(`/jobs/${id}/apply`)}>
-              Apply now
-            </Button>
-            <p className="text-xs text-ink-muted text-center">You&apos;ll upload your CV in the next step.</p>
+            {/* Spots indicator */}
+            {post.maxApplicants != null && (
+              <div className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium ${
+                post.isFull
+                  ? "bg-error/10 border-error/25 text-error"
+                  : "bg-emerald/10 border-emerald/25 text-emerald"
+              }`}>
+                <Users className="w-4 h-4 shrink-0" />
+                {post.isFull
+                  ? "All positions filled"
+                  : `${post.maxApplicants - (post.approvedCount ?? 0)} of ${post.maxApplicants} spot${post.maxApplicants !== 1 ? "s" : ""} remaining`
+                }
+              </div>
+            )}
+
+            {/* Apply button */}
+            {post.isFull ? (
+              <div className="flex flex-col gap-2">
+                <div className="w-full flex items-center justify-center gap-2 bg-surface-2 border border-border rounded-xl px-4 py-3">
+                  <XCircle className="w-5 h-5 text-error" />
+                  <span className="text-sm font-semibold text-error">Positions filled</span>
+                </div>
+                <p className="text-xs text-ink-muted text-center">
+                  This job is no longer accepting applications.
+                </p>
+              </div>
+            ) : (
+              <>
+                <Button className="w-full" size="lg" onClick={() => router.push(`/jobs/${id}/apply`)}>
+                  Apply now
+                </Button>
+                <p className="text-xs text-ink-muted text-center">You&apos;ll upload your CV in the next step.</p>
+              </>
+            )}
           </div>
         </div>
       </div>

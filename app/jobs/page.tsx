@@ -10,6 +10,9 @@ interface Post {
   id: string; title: string; description: string;
   type: "JOB" | "INTERNSHIP"; imageUrl?: string;
   location?: string; createdAt: string;
+  maxApplicants?: number | null;
+  approvedCount?: number;
+  isFull?: boolean;
   recruiter: { companyName: string };
 }
 
@@ -117,6 +120,9 @@ export default function JobsPage() {
               type={p.type}
               imageUrl={p.imageUrl}
               createdAt={p.createdAt}
+              maxApplicants={p.maxApplicants}
+              approvedCount={p.approvedCount}
+              isFull={p.isFull}
             />
           ))}
         </div>

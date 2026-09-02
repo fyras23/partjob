@@ -34,6 +34,18 @@ export async function POST(
   });
   if (existing) return Errors.conflict("You have already applied to this job");
 
+  // ── Check capacity cap ────────────────────────────────────────────────────
+  if (post.maxApplicants != null) {
+    const approvedCount = await prisma.application.count({
+      where: { postId, status: "APPROVED" },
+    });
+    if (approvedCount >= post.maxApplicants) {
+      return Errors.badRequest(
+        "This position is no longer accepting applications — all spots have been filled."
+      );
+    }
+  }
+
   const body = await req.json();
   const parsed = ApplySchema.safeParse(body);
   if (!parsed.success) return Errors.badRequest(zodMessage(parsed.error));
@@ -41,14 +53,14 @@ export async function POST(
   const application = await prisma.application.create({
     data: {
       postId,
-      studentId: studentProfile.id,
-      cvUrl: parsed.data.cvUrl,
+      studentId:      studentProfile.id,
+      cvUrl:          parsed.data.cvUrl,
       additionalDocs: parsed.data.additionalDocs,
-      status: "PENDING",
+      status:         "PENDING",
     },
   });
 
-  // Notify the recruiter that someone applied to their post
+  // Notify the recruiter
   pushNotification(post.recruiter.userId, {
     type:    "NEW_APPLICATION",
     status:  "PENDING",

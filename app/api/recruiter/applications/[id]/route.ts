@@ -34,11 +34,25 @@ export async function PATCH(
   const updated = await prisma.application.update({
     where: { id },
     data: {
-      status: parsed.data.status,
+      status:       parsed.data.status,
       reviewedById: session.user.id,
-      reviewedAt: new Date(),
+      reviewedAt:   new Date(),
     },
   });
+
+  // Auto-create a conversation when approved
+  if (parsed.data.status === "APPROVED") {
+    const existing = await prisma.conversation.findUnique({ where: { applicationId: id } });
+    if (!existing) {
+      await prisma.conversation.create({
+        data: {
+          applicationId:   id,
+          recruiterUserId: session.user.id,
+          studentUserId:   application.student.userId,
+        },
+      });
+    }
+  }
 
   // Notify the student in real time
   pushNotification(application.student.userId, {
@@ -49,8 +63,8 @@ export async function PATCH(
       ? `Application approved — ${application.post.title}`
       : `Application update — ${application.post.title}`,
     message: parsed.data.status === "APPROVED"
-      ? "Congratulations! The recruiter has approved your application."
-      : "The recruiter has reviewed your application. Check your applications for details.",
+      ? "Congratulations! Your application was approved. You can now message the recruiter."
+      : "The recruiter has reviewed your application.",
   });
 
   return NextResponse.json(updated);
