@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { ReviewSchema } from "@/lib/validate";
@@ -6,7 +6,7 @@ import { Errors, zodMessage } from "@/lib/errors";
 import { pushNotification } from "@/lib/notificationBus";
 
 export async function DELETE(
-  _req: NextRequest,
+  _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
@@ -25,7 +25,7 @@ export async function DELETE(
 }
 
 export async function PATCH(
-  req: NextRequest,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const session = await auth();
