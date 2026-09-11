@@ -14,29 +14,137 @@ interface ChatMessage {
   content: string;
 }
 
-// Render assistant message — detect job links and make them clickable
+// ── Message renderer ──────────────────────────────────────────────────────────
+// Handles:
+//   - Markdown links: [label](url)
+//   - Bare internal paths: /jobs/xxx, /login, /register, /dashboard
+//   - Job cards: lines starting with "• " or "- " with title + URL pattern
+//   - Strips angle brackets wrapping URLs
+//   - Bold: **text**
 function MessageContent({ content }: { content: string }) {
-  // Split on URLs like /jobs/... and make them links
-  const parts = content.split(/(\/(jobs|login|register)[^\s)]*)/g);
+  // Remove any angle-bracket URL wrappers  e.g. <https://...> or </jobs/xxx>
+  const cleaned = content.replace(/<(https?:\/\/[^\s>]+)>/g, "$1")
+                         .replace(/<(\/[^\s>]+)>/g, "$1");
+
+  // Split content into lines for block-level rendering
+  const lines = cleaned.split("\n");
+
   return (
-    <span className="leading-relaxed">
-      {parts.map((part, i) => {
-        if (part.startsWith("/jobs/") || part === "/login" || part.startsWith("/register")) {
-          return (
-            <Link
-              key={i}
-              href={part}
-              className="underline text-accent hover:text-accent-hover font-medium"
-              target={part.startsWith("/jobs/") ? "_blank" : undefined}
-            >
-              {part}
-            </Link>
-          );
-        }
-        return <span key={i}>{part}</span>;
+    <span className="flex flex-col gap-1.5 leading-relaxed">
+      {lines.map((line, li) => {
+        if (!line.trim()) return <span key={li} className="h-1" />;
+        return <InlineLine key={li} text={line} />;
       })}
     </span>
   );
+}
+
+function InlineLine({ text }: { text: string }) {
+  // Detect job URL lines — render as a clickable card
+  // Pattern: anything ending with /jobs/<uuid>
+  const jobCardMatch = text.match(/^[-•*]?\s*(.*?)\s*[-–]\s*(.*?)\s*[-–|]?\s*(\/jobs\/[a-z0-9-]+)\s*$/i);
+  if (jobCardMatch) {
+    const [, title, meta, url] = jobCardMatch;
+    return (
+      <Link href={url} target="_blank"
+        className="flex items-start gap-2.5 px-3 py-2.5 bg-accent/5 border border-accent/20 rounded-xl hover:bg-accent/10 hover:border-accent/40 transition-colors group no-underline">
+        <Briefcase className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-ink truncate group-hover:text-accent transition-colors">{title.trim()}</p>
+          {meta?.trim() && <p className="text-xs text-ink-muted truncate mt-0.5">{meta.trim()}</p>}
+        </div>
+        <ExternalLinkIcon className="w-3.5 h-3.5 text-ink-faint group-hover:text-accent shrink-0 mt-0.5 transition-colors" />
+      </Link>
+    );
+  }
+
+  // Render inline spans with markdown + link parsing
+  return <span>{parseInline(text)}</span>;
+}
+
+function ExternalLinkIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" />
+    </svg>
+  );
+}
+
+function parseInline(text: string): React.ReactNode[] {
+  const nodes: React.ReactNode[] = [];
+  // Regex catches: [label](url), http(s) URLs, bare /path routes, **bold**
+  const pattern = /(\[([^\]]+)\]\((\/[^\s)]+|https?:\/\/[^\s)]+)\))|(https?:\/\/[^\s<>)"]+)|(\/jobs\/[a-zA-Z0-9-]+)|(\/(?:login|register(?:\/\w+)?|dashboard(?:\/\w+)*|onboarding(?:\/\w+)*|messages(?:\/\w+)*)(?=[^a-zA-Z0-9]|$))|(\*\*(.+?)\*\*)/g;
+
+  let last = 0;
+  let match: RegExpExecArray | null;
+  let idx = 0;
+
+  while ((match = pattern.exec(text)) !== null) {
+    // Text before match
+    if (match.index > last) {
+      nodes.push(<span key={idx++}>{text.slice(last, match.index)}</span>);
+    }
+
+    const [full, mdLink, mdLabel, mdHref, bareUrl, jobPath, pagePath, bold, boldText] = match;
+
+    if (mdLink) {
+      // [label](url)
+      const href = mdHref;
+      const isExternal = href.startsWith("http");
+      nodes.push(
+        <Link key={idx++} href={href} target={isExternal ? "_blank" : undefined} rel={isExternal ? "noopener noreferrer" : undefined}
+          className="inline-flex items-center gap-1 text-accent font-medium hover:underline">
+          {mdLabel}
+          {isExternal && <ExternalLinkIcon className="w-3 h-3 inline" />}
+        </Link>
+      );
+    } else if (bareUrl) {
+      nodes.push(
+        <a key={idx++} href={bareUrl} target="_blank" rel="noopener noreferrer"
+          className="text-accent font-medium hover:underline inline-flex items-center gap-0.5">
+          {bareUrl} <ExternalLinkIcon className="w-3 h-3 inline" />
+        </a>
+      );
+    } else if (jobPath) {
+      nodes.push(
+        <Link key={idx++} href={jobPath} target="_blank"
+          className="inline-flex items-center gap-1 px-2 py-0.5 bg-accent/10 text-accent font-medium rounded-md hover:bg-accent/20 transition-colors text-xs">
+          <Briefcase className="w-3 h-3" /> View job
+        </Link>
+      );
+    } else if (pagePath) {
+      const labels: Record<string, string> = {
+        "/login": "Sign in →",
+        "/register": "Register →",
+        "/register/student": "Student registration →",
+        "/register/recruiter": "Recruiter registration →",
+        "/dashboard": "Dashboard →",
+        "/dashboard/applications": "My applications →",
+        "/dashboard/membership": "Membership plans →",
+        "/onboarding/verify": "Verify account →",
+        "/messages": "Messages →",
+      };
+      const label = labels[pagePath] ?? pagePath;
+      nodes.push(
+        <Link key={idx++} href={pagePath}
+          className="inline-flex items-center gap-1 px-2.5 py-1 bg-surface-2 border border-border text-accent text-xs font-semibold rounded-lg hover:border-accent/40 hover:bg-accent/5 transition-colors">
+          {label}
+        </Link>
+      );
+    } else if (bold) {
+      nodes.push(<strong key={idx++} className="font-semibold text-ink">{boldText}</strong>);
+    } else {
+      nodes.push(<span key={idx++}>{full}</span>);
+    }
+
+    last = match.index + full.length;
+  }
+
+  if (last < text.length) {
+    nodes.push(<span key={idx++}>{text.slice(last)}</span>);
+  }
+
+  return nodes;
 }
 
 const QUICK_PROMPTS_GUEST = [

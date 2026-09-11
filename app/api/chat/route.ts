@@ -206,8 +206,11 @@ Capabilities:
 - Get job details using get_job_details
 - Explain the platform using get_platform_info
 
-When listing jobs: show max 4 with title, company, location, pay (if set), spots left, and URL.
-If a student asks "what jobs are available" with no filter, call search_jobs with empty params to get recent listings.`;
+Keep responses concise. When listing jobs, show max 3-4 with key info (title, company, location, pay if available, spots left). Always include a link to the job formatted as [Job Title - Company](url).
+
+For navigation links use markdown format: [Sign in](/login), [Register as student](/register/student), [Register as recruiter](/register/recruiter).
+
+NEVER output raw URLs with angle brackets like </jobs/xxx>. Always use markdown link format [label](url).`;
 
     const groqMessages: Message[] = [
       { role: "system", content: systemPrompt },
