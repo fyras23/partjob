@@ -43,13 +43,18 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.role      = (user as { role: Role }).role;
         token.avatarUrl = (user as { avatarUrl?: string | null }).avatarUrl ?? null;
       }
-      // Allow refreshing the token so avatarUrl updates are picked up
+
       if (trigger === "update") {
-        const fresh = await prisma.user.findUnique({
-          where: { id: token.id as string },
-          select: { avatarUrl: true },
-        });
-        token.avatarUrl = fresh?.avatarUrl ?? null;
+        const incomingAvatar = (user as { avatarUrl?: string | null } | undefined)?.avatarUrl ?? null;
+        if (incomingAvatar || incomingAvatar === null) {
+          token.avatarUrl = incomingAvatar;
+        } else {
+          const fresh = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { avatarUrl: true },
+          });
+          token.avatarUrl = fresh?.avatarUrl ?? null;
+        }
       }
       return token;
     },

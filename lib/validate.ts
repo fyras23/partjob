@@ -50,6 +50,11 @@ export const ApplySchema = z.object({
   additionalDocs: z.array(z.string().url()).max(5).optional().default([]),
 });
 
+export const RateStudentSchema = z.object({
+  score: z.number().int().min(1).max(5),
+  comment: z.string().trim().max(500).optional().nullable(),
+});
+
 // ── Admin / Recruiter review ──────────────────────────────────────────────────
 
 export const ReviewSchema = z.object({

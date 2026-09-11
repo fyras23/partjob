@@ -5,6 +5,25 @@ import { ReviewSchema } from "@/lib/validate";
 import { Errors, zodMessage } from "@/lib/errors";
 import { pushNotification } from "@/lib/notificationBus";
 
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session) return Errors.unauthorized();
+  if (session.user.role !== "ADMIN") return Errors.forbidden();
+
+  const { id } = await params;
+
+  const post = await prisma.post.findUnique({ where: { id } });
+  if (!post) return Errors.notFound("Post");
+
+  await prisma.application.deleteMany({ where: { postId: id } });
+  await prisma.post.delete({ where: { id } });
+
+  return NextResponse.json({ success: true, id });
+}
+
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import { Menu, X, Briefcase } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import clsx from "clsx";
 import { RoleBadge } from "@/components/ui/StatusBadge";
 import { Button } from "@/components/ui/Button";
@@ -21,6 +21,18 @@ export function StudentNav() {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (!session?.user?.id) {
+      setAvatarUrl(null);
+      return;
+    }
+
+    const saved = window.localStorage.getItem(`partjob-avatar-url-${session.user.id}`);
+    setAvatarUrl(saved ?? session.user.avatarUrl ?? null);
+  }, [session?.user?.id, session?.user?.avatarUrl]);
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-bg/80 backdrop-blur-xl">
@@ -60,7 +72,7 @@ export function StudentNav() {
                   <Avatar
                     name={session.user.name}
                     role={session.user.role as "STUDENT"}
-                    avatarUrl={session.user.avatarUrl}
+                    avatarUrl={avatarUrl}
                     size="sm"
                   />
                   <span className="text-sm text-ink font-medium">{session.user.name}</span>
@@ -89,7 +101,7 @@ export function StudentNav() {
                 <Avatar
                   name={session.user.name}
                   role={session.user.role as "STUDENT"}
-                  avatarUrl={session.user.avatarUrl}
+                  avatarUrl={avatarUrl}
                   size="sm"
                 />
               </Link>
@@ -109,7 +121,7 @@ export function StudentNav() {
               <Avatar
                 name={session.user.name}
                 role={session.user.role as "STUDENT"}
-                avatarUrl={session.user.avatarUrl}
+                avatarUrl={avatarUrl}
                 size="md"
               />
               <div>

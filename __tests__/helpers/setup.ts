@@ -116,8 +116,42 @@ export async function cleanup(...ids: string[]) {
 
 export async function cleanupAll(...groups: { id: string }[][]) {
   const allIds = groups.flat().map((r) => r.id);
-  await prisma.application.deleteMany({ where: { OR: [{ studentId: { in: allIds } }, { postId: { in: allIds } }] } });
-  await prisma.post.deleteMany({ where: { recruiterId: { in: allIds } } });
+
+  const recruiterProfileIds = await prisma.recruiterProfile.findMany({
+    where: { userId: { in: allIds } },
+    select: { id: true },
+  }).then((rows) => rows.map((row) => row.id));
+
+  const studentProfileIds = await prisma.studentProfile.findMany({
+    where: { userId: { in: allIds } },
+    select: { id: true },
+  }).then((rows) => rows.map((row) => row.id));
+
+  const postIds = await prisma.post.findMany({
+    where: { recruiterId: { in: recruiterProfileIds } },
+    select: { id: true },
+  }).then((rows) => rows.map((row) => row.id));
+
+  await prisma.studentRating.deleteMany({
+    where: {
+      OR: [
+        { studentId: { in: studentProfileIds } },
+        { recruiterId: { in: recruiterProfileIds } },
+        { applicationId: { in: postIds } },
+      ],
+    },
+  });
+
+  await prisma.application.deleteMany({
+    where: {
+      OR: [
+        { studentId: { in: studentProfileIds } },
+        { postId: { in: postIds } },
+      ],
+    },
+  });
+
+  await prisma.post.deleteMany({ where: { recruiterId: { in: recruiterProfileIds } } });
   await prisma.recruiterProfile.deleteMany({ where: { userId: { in: allIds } } });
   await prisma.studentProfile.deleteMany({ where: { userId: { in: allIds } } });
   await prisma.user.deleteMany({ where: { id: { in: allIds } } });

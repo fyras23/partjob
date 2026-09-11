@@ -93,7 +93,8 @@ model RecruiterProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  posts Post[]
+  posts        Post[]
+  ratingsGiven StudentRating[] @relation("RatingsGiven")
 }
 
 model StudentProfile {
@@ -106,7 +107,8 @@ model StudentProfile {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  applications Application[]
+  applications    Application[]
+  ratingsReceived StudentRating[] @relation("RatingsReceived")
 }
 
 model Post {
@@ -149,9 +151,28 @@ model Application {
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 
-  conversation   Conversation?
+  conversation Conversation?
+  ratings      StudentRating[] @relation("ApplicationRatings")
 
   @@unique([postId, studentId])
+}
+
+model StudentRating {
+  id            String   @id @default(uuid())
+  recruiterId   String
+  recruiter     RecruiterProfile @relation("RatingsGiven", fields: [recruiterId], references: [id])
+  studentId     String
+  student       StudentProfile   @relation("RatingsReceived", fields: [studentId], references: [id])
+  applicationId String
+  application   Application      @relation("ApplicationRatings", fields: [applicationId], references: [id])
+  score         Int
+  comment       String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([applicationId])
+  @@index([studentId])
+  @@index([recruiterId])
 }
 
 model Conversation {

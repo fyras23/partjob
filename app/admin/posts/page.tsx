@@ -26,6 +26,7 @@ export default function AdminPostsPage() {
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -51,6 +52,24 @@ export default function AdminPostsPage() {
     toast.success(status === "APPROVED" ? "Post approved and now live." : "Post rejected.");
   }
 
+  async function removePost(id: string) {
+    setActionLoading(id);
+    const res = await fetch(`/api/admin/posts/${id}`, {
+      method: "DELETE",
+    });
+    setActionLoading(null);
+
+    if (!res.ok) {
+      toast.error("Failed to delete post.");
+      return;
+    }
+
+    setPosts((prev) => prev.filter((post) => post.id !== id));
+    setExpanded((current) => (current === id ? null : current));
+    setDeleteTargetId(null);
+    toast.success("Post deleted.");
+  }
+
   return (
     <div className="flex flex-col gap-6 max-w-4xl">
       <div>
@@ -69,6 +88,33 @@ export default function AdminPostsPage() {
           </button>
         ))}
       </div>
+
+      {deleteTargetId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={() => setDeleteTargetId(null)}>
+          <div
+            className="w-full max-w-md rounded-[12px] border border-border bg-surface p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="font-heading text-2xl text-ink">Delete post?</h2>
+            <p className="mt-2 text-sm text-ink-muted">
+              Are you sure you want to delete this post? This action cannot be undone.
+            </p>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button size="sm" variant="ghost" onClick={() => setDeleteTargetId(null)}>
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                loading={actionLoading === deleteTargetId}
+                onClick={() => removePost(deleteTargetId)}
+              >
+                Delete post
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex flex-col gap-3">
@@ -123,35 +169,43 @@ export default function AdminPostsPage() {
                       <ExternalLink className="w-3 h-3" /> Preview as student
                     </Link>
 
-                    {p.status === "PENDING" && (
-                      <div className="flex flex-col gap-3">
-                        {!isRejecting ? (
-                          <div className="flex gap-2">
-                            <Button size="sm" onClick={() => review(p.id, "APPROVED")} loading={actionLoading === p.id}>
-                              Approve
-                            </Button>
-                            <Button size="sm" variant="destructive" onClick={() => setRejecting(p.id)}>
-                              Reject
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col gap-2">
-                            <Textarea
-                              label="Reason for rejection"
-                              value={rejectReason}
-                              onChange={(e) => setRejectReason(e.target.value)}
-                              hint="The recruiter will see this and can fix and resubmit."
-                            />
+                    <div className="flex flex-col gap-3">
+                      {p.status === "PENDING" && (
+                        <div className="flex flex-col gap-3">
+                          {!isRejecting ? (
                             <div className="flex gap-2">
-                              <Button size="sm" variant="destructive" onClick={() => review(p.id, "REJECTED")} loading={actionLoading === p.id}>
-                                Confirm rejection
+                              <Button size="sm" onClick={() => review(p.id, "APPROVED")} loading={actionLoading === p.id}>
+                                Approve
                               </Button>
-                              <Button size="sm" variant="ghost" onClick={() => setRejecting(null)}>Cancel</Button>
+                              <Button size="sm" variant="destructive" onClick={() => setRejecting(p.id)}>
+                                Reject
+                              </Button>
                             </div>
-                          </div>
-                        )}
+                          ) : (
+                            <div className="flex flex-col gap-2">
+                              <Textarea
+                                label="Reason for rejection"
+                                value={rejectReason}
+                                onChange={(e) => setRejectReason(e.target.value)}
+                                hint="The recruiter will see this and can fix and resubmit."
+                              />
+                              <div className="flex gap-2">
+                                <Button size="sm" variant="destructive" onClick={() => review(p.id, "REJECTED")} loading={actionLoading === p.id}>
+                                  Confirm rejection
+                                </Button>
+                                <Button size="sm" variant="ghost" onClick={() => setRejecting(null)}>Cancel</Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="flex gap-2 justify-end">
+                        <Button size="sm" variant="destructive" onClick={() => setDeleteTargetId(p.id)}>
+                          Delete post
+                        </Button>
                       </div>
-                    )}
+                    </div>
                   </div>
                 )}
               </div>

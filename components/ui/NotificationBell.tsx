@@ -5,7 +5,7 @@ import {
 import { createPortal } from "react-dom";
 import {
   Bell, X, CheckCircle2, AlertCircle, Info,
-  FileText, UserCheck, Users, BriefcaseBusiness,
+  FileText, UserCheck, Users, BriefcaseBusiness, Star,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { toast } from "./Toast";
@@ -32,6 +32,7 @@ const ICON_BY_TYPE: Record<string, React.ComponentType<{ className?: string }>> 
   POST_UPDATE:          BriefcaseBusiness,
   VERIFICATION_UPDATE:  UserCheck,
   APPLICATION_UPDATE:   CheckCircle2,
+  STUDENT_RATED:        Star,
 };
 
 const BG_BY_STATUS: Record<string, string> = {

@@ -27,7 +27,15 @@ export async function GET(
     where: { postId: id },
     include: {
       student: {
-        include: { user: { select: { name: true, email: true } } },
+        include: { user: { select: { id: true, name: true, email: true } } },
+      },
+      ratings: {
+        select: {
+          id: true,
+          score: true,
+          comment: true,
+          createdAt: true,
+        },
       },
     },
     orderBy: { createdAt: "desc" },

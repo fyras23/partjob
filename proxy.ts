@@ -16,6 +16,7 @@ const PAGE_GUARDS = [
   { prefix: "/dashboard",          roles: ["RECRUITER", "STUDENT"] },
   // Recruiter-only sub-routes inside /dashboard
   { prefix: "/dashboard/posts",    roles: ["RECRUITER"] },
+  { prefix: "/dashboard/students", roles: ["RECRUITER"] },
   { prefix: "/onboarding",         roles: ["RECRUITER"] },
 ];
 

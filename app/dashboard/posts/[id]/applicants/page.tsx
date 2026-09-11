@@ -15,10 +15,17 @@ interface Application {
   cvUrl: string;
   additionalDocs: string[];
   createdAt: string;
+  ratings: Array<{
+    id: string;
+    score: number;
+    comment: string | null;
+    createdAt: string;
+  }>;
   student: {
+    id: string;
     university?: string;
     major?: string;
-    user: { name: string; email: string };
+    user: { id: string; name: string; email: string };
   };
 }
 
@@ -31,6 +38,8 @@ export default function ApplicantsPage() {
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [ratingDrafts, setRatingDrafts] = useState<Record<string, { score: number; comment: string }>>({});
+  const [ratingLoading, setRatingLoading] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/recruiter/posts/${postId}/applications`)
@@ -60,6 +69,31 @@ export default function ApplicantsPage() {
     setRejecting(null);
     setRejectReason("");
     toast.success(status === "APPROVED" ? "Applicant approved." : "Applicant rejected.");
+  }
+
+  async function submitRating(appId: string) {
+    const draft = ratingDrafts[appId] ?? { score: 5, comment: "" };
+    setRatingLoading(appId);
+    const res = await fetch(`/api/recruiter/applications/${appId}/rate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        score: draft.score,
+        comment: draft.comment.trim() || null,
+      }),
+    });
+    setRatingLoading(null);
+
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      toast.error(data.error ?? "Unable to save rating.");
+      return;
+    }
+
+    const nextRating = await res.json();
+    setApps((prev) => prev.map((app) => app.id === appId ? { ...app, ratings: [nextRating] } : app));
+    setRatingDrafts((prev) => ({ ...prev, [appId]: { score: 5, comment: "" } }));
+    toast.success("Student rated successfully.");
   }
 
   if (loading) {
@@ -158,6 +192,18 @@ export default function ApplicantsPage() {
                       ))}
                     </div>
 
+                    <div className="flex items-center justify-between gap-2 border-t border-border pt-4">
+                      <Link href={`/dashboard/students/${app.student.id}`} className="text-sm text-accent hover:underline">
+                        View student profile
+                      </Link>
+
+                      {app.ratings.length > 0 && (
+                        <div className="text-sm text-ink-muted">
+                          Rated {app.ratings[0].score}/5
+                        </div>
+                      )}
+                    </div>
+
                     {/* Actions — only for PENDING */}
                     {app.status === "PENDING" && (
                       <div className="flex flex-col gap-3">
@@ -204,6 +250,53 @@ export default function ApplicantsPage() {
                               </Button>
                             </div>
                           </div>
+                        )}
+                      </div>
+                    )}
+
+                    {app.status === "APPROVED" && app.ratings.length === 0 && (
+                      <div className="border border-border rounded-xl p-4 bg-bg">
+                        <p className="text-sm font-medium text-ink mb-3">Rate this student</p>
+                        <div className="flex items-center gap-2 mb-3">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              key={star}
+                              type="button"
+                              onClick={() => setRatingDrafts((prev) => ({
+                                ...prev,
+                                [app.id]: { score: star, comment: prev[app.id]?.comment ?? "" },
+                              }))}
+                              className={`text-xl ${((ratingDrafts[app.id]?.score ?? 5) >= star) ? "text-amber" : "text-ink-faint"}`}
+                            >
+                              ★
+                            </button>
+                          ))}
+                        </div>
+                        <Textarea
+                          label="Comment (optional)"
+                          value={ratingDrafts[app.id]?.comment ?? ""}
+                          onChange={(e) => setRatingDrafts((prev) => ({
+                            ...prev,
+                            [app.id]: { score: prev[app.id]?.score ?? 5, comment: e.target.value },
+                          }))}
+                          placeholder="Very reliable, responsive, and easy to work with..."
+                        />
+                        <div className="mt-3">
+                          <Button size="sm" onClick={() => submitRating(app.id)} loading={ratingLoading === app.id}>
+                            Save rating
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+
+                    {app.status === "APPROVED" && app.ratings.length > 0 && (
+                      <div className="border border-border rounded-xl p-4 bg-bg">
+                        <p className="text-sm font-medium text-ink mb-2">Existing rating</p>
+                        <div className="text-amber text-sm">
+                          {"★".repeat(app.ratings[0].score)}{"☆".repeat(5 - app.ratings[0].score)}
+                        </div>
+                        {app.ratings[0].comment && (
+                          <p className="text-sm text-ink-muted mt-2">“{app.ratings[0].comment}”</p>
                         )}
                       </div>
                     )}

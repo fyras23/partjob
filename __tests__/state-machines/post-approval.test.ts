@@ -7,6 +7,12 @@
  * APPROVED → PENDING  (recruiter edits — re-review)
  */
 import { prisma, createAdmin, createRecruiter, createPost, cleanupAll } from "../helpers/setup";
+import { auth } from "@/lib/auth";
+import { DELETE } from "@/app/api/admin/posts/[id]/route";
+
+jest.mock("@/lib/auth", () => ({
+  auth: jest.fn(),
+}));
 
 describe("Post Approval State Machine", () => {
   let adminId: string;
@@ -98,5 +104,24 @@ describe("Post Approval State Machine", () => {
     expect(edited.approvedById).toBeNull();
 
     await prisma.post.delete({ where: { id: post.id } });
+  });
+
+  it("allows admin to delete a post", async () => {
+    const admin = await createAdmin();
+    const { user: recruiterUser, profile: recruiterProfile } = await createRecruiter({ verified: true, adminId: admin.id });
+    const post = await createPost(recruiterProfile.id);
+
+    (auth as jest.Mock).mockResolvedValue({
+      user: { id: admin.id, role: "ADMIN" },
+    });
+
+    const response = await DELETE(new Request(`http://localhost/api/admin/posts/${post.id}`), {
+      params: Promise.resolve({ id: post.id }),
+    });
+
+    expect(response.status).toBe(200);
+    await expect(prisma.post.findUnique({ where: { id: post.id } })).resolves.toBeNull();
+
+    await cleanupAll([{ id: admin.id }], [{ id: recruiterUser.id }]);
   });
 });
