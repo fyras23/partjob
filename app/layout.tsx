@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { SessionProvider } from "@/components/providers/SessionProvider";
 import { ToastContainer } from "@/components/ui/Toast";
+import { ChatBot } from "@/components/ui/ChatBot";
 
 export const metadata: Metadata = {
   title: "PartJob — Part-time jobs & internships for students",
@@ -15,6 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SessionProvider>
           {children}
           <ToastContainer />
+          <ChatBot />
         </SessionProvider>
       </body>
     </html>
