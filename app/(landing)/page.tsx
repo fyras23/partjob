@@ -1,532 +1,350 @@
 "use client";
+
 import Link from "next/link";
-import { motion, useInView, useScroll, useTransform } from "framer-motion";
-import { useRef } from "react";
+import { useEffect, useState } from "react";
 import {
-  Briefcase, GraduationCap, ShieldCheck, ArrowRight,
-  Star, Zap, Users, CheckCircle2, MessageSquare,
-  FileText, Bell, TrendingUp, Globe, Award, ChevronRight,
+  ArrowRight,
+  BadgeCheck,
+  BriefcaseBusiness,
+  CheckCircle2,
+  MessageSquare,
+  MapPin,
+  Search,
+  Send,
+  ShieldCheck,
+  UserRoundPlus,
 } from "lucide-react";
+import { JobCard } from "@/components/ui/JobCard";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
-/* ── Animation helpers ──────────────────────────────────────────────────── */
-function FadeUp({ children, delay = 0, className = "" }: {
-  children: React.ReactNode; delay?: number; className?: string;
-}) {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 32 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.6, delay, ease: [0.25, 0.46, 0.45, 0.94] }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
+interface LandingPost {
+  id: string;
+  title: string;
+  description: string;
+  type: "JOB" | "INTERNSHIP";
+  imageUrl?: string | null;
+  location?: string | null;
+  createdAt: string;
+  hourlyRate?: number | null;
+  dailyRate?: number | null;
+  fields?: string[];
+  maxApplicants?: number | null;
+  approvedCount?: number;
+  isFull?: boolean;
+  recruiter: { companyName: string; verificationStatus: string };
 }
 
-function FadeIn({ children, delay = 0, className = "" }: {
-  children: React.ReactNode; delay?: number; className?: string;
-}) {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true, margin: "-60px" });
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0 }}
-      animate={inView ? { opacity: 1 } : {}}
-      transition={{ duration: 0.7, delay }}
-      className={className}
-    >
-      {children}
-    </motion.div>
-  );
-}
+type ListingsState = "loading" | "ready" | "error";
 
-/* ── Stat counter ────────────────────────────────────────────────────────── */
-function StatCard({ value, label, icon: Icon, color }: {
-  value: string; label: string;
-  icon: React.ComponentType<{ className?: string }>; color: string;
-}) {
-  return (
-    <div className={`flex flex-col gap-3 p-6 bg-surface border border-border rounded-2xl relative overflow-hidden group hover:border-${color}/40 transition-colors`}>
-      <div className={`w-10 h-10 rounded-xl bg-${color}/10 flex items-center justify-center`}>
-        <Icon className={`w-5 h-5 text-${color}`} />
-      </div>
-      <div>
-        <p className="font-heading text-3xl font-bold text-ink">{value}</p>
-        <p className="text-sm text-ink-muted mt-0.5">{label}</p>
-      </div>
-      {/* Hover glow */}
-      <div className={`absolute inset-0 bg-${color}/5 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl pointer-events-none`} />
-    </div>
-  );
-}
+const STEPS = [
+  {
+    number: "01",
+    icon: UserRoundPlus,
+    title: "Build your profile",
+    description: "Add your studies and save your CV once.",
+  },
+  {
+    number: "02",
+    icon: Search,
+    title: "Find a fitting role",
+    description: "Compare pay, location and job type before you apply.",
+  },
+  {
+    number: "03",
+    icon: MessageSquare,
+    title: "Get approved and chat",
+    description: "Track your application. When it is approved, message the recruiter directly.",
+  },
+];
 
-/* ── Feature card ────────────────────────────────────────────────────────── */
-function FeatureCard({ icon: Icon, title, description, color, delay }: {
-  icon: React.ComponentType<{ className?: string }>;
-  title: string; description: string; color: string; delay: number;
-}) {
-  return (
-    <FadeUp delay={delay}>
-      <div className="flex flex-col gap-4 p-6 bg-surface border border-border rounded-2xl hover:border-accent/40 hover:-translate-y-0.5 transition-all duration-200 h-full">
-        <div className={`w-11 h-11 rounded-xl bg-${color}/10 flex items-center justify-center`}>
-          <Icon className={`w-5 h-5 text-${color}`} />
-        </div>
-        <div>
-          <h3 className="font-heading text-base font-semibold text-ink mb-1.5">{title}</h3>
-          <p className="text-sm text-ink-muted leading-relaxed">{description}</p>
-        </div>
-      </div>
-    </FadeUp>
-  );
-}
-
-/* ── Testimonial card ────────────────────────────────────────────────────── */
-function Testimonial({ quote, name, role, avatar }: {
-  quote: string; name: string; role: string; avatar: string;
-}) {
-  return (
-    <div className="flex flex-col gap-4 p-6 bg-surface border border-border rounded-2xl">
-      <div className="flex gap-0.5">
-        {[1,2,3,4,5].map((i) => (
-          <Star key={i} className="w-4 h-4 text-amber fill-amber" />
-        ))}
-      </div>
-      <p className="text-sm text-ink-muted leading-relaxed italic">&ldquo;{quote}&rdquo;</p>
-      <div className="flex items-center gap-3 mt-auto pt-2 border-t border-border">
-        <div className="w-9 h-9 rounded-full bg-accent/20 flex items-center justify-center font-bold text-accent text-sm">
-          {avatar}
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-ink">{name}</p>
-          <p className="text-xs text-ink-muted">{role}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Step card ───────────────────────────────────────────────────────────── */
-function Step({ number, title, description, icon: Icon }: {
-  number: string; title: string; description: string;
-  icon: React.ComponentType<{ className?: string }>;
-}) {
-  return (
-    <div className="flex gap-4 items-start">
-      <div className="flex flex-col items-center gap-2 shrink-0">
-        <div className="w-10 h-10 rounded-full bg-accent text-white font-bold font-heading text-sm flex items-center justify-center">
-          {number}
-        </div>
-        <div className="w-px flex-1 bg-border" />
-      </div>
-      <div className="pb-8">
-        <div className="flex items-center gap-2 mb-1.5">
-          <Icon className="w-4 h-4 text-accent" />
-          <h3 className="font-heading text-base font-semibold text-ink">{title}</h3>
-        </div>
-        <p className="text-sm text-ink-muted leading-relaxed">{description}</p>
-      </div>
-    </div>
-  );
-}
-
-/* ── Main ────────────────────────────────────────────────────────────────── */
 export default function LandingPage() {
-  const heroRef = useRef(null);
-  const { scrollYProgress } = useScroll({ target: heroRef, offset: ["start start", "end start"] });
-  const heroY   = useTransform(scrollYProgress, [0, 1], ["0%", "25%"]);
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
+  const [posts, setPosts] = useState<LandingPost[]>([]);
+  const [listingsState, setListingsState] = useState<ListingsState>("loading");
+  const [retryVersion, setRetryVersion] = useState(0);
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadPosts() {
+      try {
+        const response = await fetch("/api/jobs", { signal: controller.signal });
+        if (!response.ok) throw new Error("Could not load jobs");
+        const data: unknown = await response.json();
+        if (!Array.isArray(data)) throw new Error("Unexpected jobs response");
+        setPosts(data as LandingPost[]);
+        setListingsState("ready");
+      } catch {
+        if (!controller.signal.aborted) setListingsState("error");
+      }
+    }
+
+    void loadPosts();
+    return () => controller.abort();
+  }, [retryVersion]);
+
+  const verifiedCompanies = new Set(
+    posts
+      .filter((post) => post.recruiter.verificationStatus === "APPROVED")
+      .map((post) => post.recruiter.companyName),
+  ).size;
+  const featuredPost = posts[0];
+  const latestPosts = posts.slice(0, 4);
 
   return (
-    <div className="min-h-screen bg-bg overflow-x-hidden">
-
-      {/* ── Nav ───────────────────────────────────────────────────────── */}
-      <motion.header
-        initial={{ y: -60, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-bg/80 backdrop-blur-xl"
-      >
-        <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center">
-              <Briefcase className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-heading text-lg font-semibold text-ink">PartJob</span>
+    <div className="min-h-screen bg-bg text-text">
+      <header className="border-b border-border bg-bg">
+        <div className="mx-auto flex min-h-16 w-full max-w-7xl items-center gap-4 px-4">
+          <Link href="/" className="flex shrink-0 items-center gap-2" aria-label="PartJob home">
+            <span className="grid size-9 place-items-center rounded-lg bg-primary text-on-primary">
+              <BriefcaseBusiness size={18} strokeWidth={1.75} aria-hidden="true" />
+            </span>
+            <span className="font-heading text-xl font-semibold">PartJob</span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-1">
-            {["Features", "How it works", "Testimonials"].map((item) => (
-              <a
-                key={item}
-                href={`#${item.toLowerCase().replace(/\s+/g, "-")}`}
-                className="px-3 py-1.5 text-sm text-ink-muted hover:text-ink rounded-lg hover:bg-surface-2 transition-colors"
-              >
-                {item}
-              </a>
-            ))}
+          <nav aria-label="Main navigation" className="ml-auto hidden items-center gap-1 md:flex">
+            <Link href="/jobs" className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text">Browse jobs</Link>
+            <a href="#how-it-works" className="inline-flex min-h-11 items-center rounded-lg px-3 text-sm font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text">How it works</a>
           </nav>
 
-          <div className="flex items-center gap-2">
-            <Link href="/login">
-              <button className="px-3 py-1.5 text-sm text-ink-muted hover:text-ink transition-colors">
-                Sign in
-              </button>
-            </Link>
-            <Link href="/register">
-              <button className="px-4 py-2 bg-accent text-white text-sm font-medium rounded-lg hover:bg-accent-hover transition-colors flex items-center gap-1.5">
-                Get started <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </Link>
+          <div className="ml-auto flex items-center gap-2 md:ml-3">
+            <ThemeToggle />
+            <Link href="/login" className="inline-flex min-h-11 items-center rounded-lg px-2 text-sm font-semibold text-primary transition-colors hover:bg-primary-soft sm:px-3">Log in</Link>
+            <Link href="/register/recruiter" className="hidden min-h-11 items-center rounded-lg border border-border px-3 text-sm font-semibold text-text transition-colors hover:border-primary hover:text-primary sm:inline-flex">Post a job</Link>
           </div>
         </div>
-      </motion.header>
+      </header>
 
-      {/* ── Hero ──────────────────────────────────────────────────────── */}
-      <section ref={heroRef} className="relative min-h-screen flex items-center justify-center pt-14 overflow-hidden">
+      <main>
+        <section className="mx-auto grid w-full max-w-7xl items-center gap-8 px-4 pb-12 pt-10 md:gap-12 md:pb-16 md:pt-14 lg:grid-cols-[1.05fr_0.95fr]">
+          <div>
+            <p className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-primary">
+              <span className="size-2 rounded-full bg-status-approved-text" aria-hidden="true" />
+              Student work, with the details up front
+            </p>
+            <h1 className="max-w-[14ch] font-heading text-4xl font-semibold leading-[1.08] text-text sm:text-5xl">
+              Find work that fits around your studies.
+            </h1>
+            <p className="mt-4 max-w-xl text-base leading-relaxed text-text-muted">
+              Browse part-time jobs and internships from verified recruiters. Check the pay and location before you apply.
+            </p>
 
-        {/* Animated gradient orbs */}
-        <div className="absolute inset-0 pointer-events-none">
-          <motion.div
-            animate={{ x: [0, 40, 0], y: [0, -30, 0] }}
-            transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute top-1/4 left-1/4 w-96 h-96 bg-accent/10 rounded-full blur-3xl"
-          />
-          <motion.div
-            animate={{ x: [0, -50, 0], y: [0, 40, 0] }}
-            transition={{ duration: 16, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-            className="absolute top-1/3 right-1/4 w-80 h-80 bg-emerald/8 rounded-full blur-3xl"
-          />
-          <motion.div
-            animate={{ x: [0, 30, 0], y: [0, 50, 0] }}
-            transition={{ duration: 14, repeat: Infinity, ease: "easeInOut", delay: 4 }}
-            className="absolute bottom-1/4 left-1/3 w-72 h-72 bg-amber/8 rounded-full blur-3xl"
-          />
-        </div>
+            <form action="/jobs" method="get" className="mt-7 grid gap-3 rounded-xl border border-border bg-surface p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,0.75fr)_auto] sm:p-3">
+              <label className="flex min-h-12 items-center gap-3 rounded-lg border border-border bg-surface-2 px-3">
+                <Search size={18} className="shrink-0 text-text-muted" aria-hidden="true" />
+                <span className="sr-only">Job title or keyword</span>
+                <input name="search" type="search" placeholder="Job title or keyword" className="h-11 min-w-0 flex-1 bg-transparent text-base text-text placeholder:text-text-muted" />
+              </label>
+              <label className="flex min-h-12 items-center gap-3 rounded-lg border border-border bg-surface-2 px-3">
+                <MapPin size={18} className="shrink-0 text-text-muted" aria-hidden="true" />
+                <span className="sr-only">City or region</span>
+                <input name="location" type="search" placeholder="City or region" className="h-11 min-w-0 flex-1 bg-transparent text-base text-text placeholder:text-text-muted" />
+              </label>
+              <button type="submit" className="inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-hover">
+                <Search size={17} aria-hidden="true" />
+                Search jobs
+              </button>
+            </form>
 
-        {/* Grid pattern overlay */}
-        <div
-          className="absolute inset-0 opacity-[0.03] pointer-events-none"
-          style={{
-            backgroundImage: "linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)",
-            backgroundSize: "60px 60px",
-          }}
-        />
-
-        <motion.div
-          style={{ y: heroY, opacity: heroOpacity }}
-          className="relative z-10 max-w-5xl mx-auto px-4 text-center"
-        >
-          {/* Badge */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.1 }}
-            className="inline-flex items-center gap-2 bg-accent/10 border border-accent/20 text-accent text-xs font-semibold px-4 py-2 rounded-full mb-8"
-          >
-            <Zap className="w-3.5 h-3.5" />
-            Tunisia&apos;s #1 student job platform
-          </motion.div>
-
-          {/* Headline */}
-          <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.2, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="font-heading text-5xl md:text-7xl font-bold text-ink leading-[1.08] tracking-tight mb-6"
-          >
-            Find your{" "}
-            <span className="relative inline-block">
-              <span className="gradient-text">perfect</span>
-              <motion.span
-                initial={{ scaleX: 0 }}
-                animate={{ scaleX: 1 }}
-                transition={{ duration: 0.6, delay: 0.9, ease: "easeOut" }}
-                className="absolute -bottom-1 left-0 right-0 h-1 bg-accent/40 rounded-full origin-left"
-              />
-            </span>
-            {" "}part-time job
-          </motion.h1>
-
-          {/* Subheadline */}
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="text-lg md:text-xl text-ink-muted max-w-2xl mx-auto mb-10 leading-relaxed"
-          >
-            PartJob connects Tunisian students with verified employers offering
-            part-time jobs and internships — all in one platform built for campus hiring.
-          </motion.p>
-
-          {/* CTA buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.55 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-16"
-          >
-            <Link href="/register/student">
-              <motion.button
-                whileHover={{ scale: 1.02, y: -1 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex items-center gap-2 px-6 py-3.5 bg-accent text-white font-semibold rounded-xl text-base hover:bg-accent-hover transition-colors shadow-xl shadow-accent/25"
-              >
-                <GraduationCap className="w-5 h-5" />
-                Find a job as a student
-              </motion.button>
-            </Link>
-            <Link href="/register/recruiter">
-              <motion.button
-                whileHover={{ scale: 1.02, y: -1 }}
-                whileTap={{ scale: 0.98 }}
-                className="flex items-center gap-2 px-6 py-3.5 bg-surface border border-border text-ink font-semibold rounded-xl text-base hover:border-emerald/50 hover:bg-emerald/5 transition-colors"
-              >
-                <Briefcase className="w-5 h-5 text-emerald" />
-                Hire as a recruiter
-              </motion.button>
-            </Link>
-          </motion.div>
-
-          {/* Social proof */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.75 }}
-            className="flex flex-wrap items-center justify-center gap-6 text-sm text-ink-muted"
-          >
-            {[
-              { icon: ShieldCheck, text: "Verified recruiters only" },
-              { icon: Award, text: "Free for students" },
-              { icon: Globe, text: "Across Tunisia" },
-            ].map(({ icon: Icon, text }) => (
-              <span key={text} className="flex items-center gap-1.5">
-                <Icon className="w-4 h-4 text-emerald" />
-                {text}
-              </span>
-            ))}
-          </motion.div>
-        </motion.div>
-
-        {/* Scroll indicator */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.5 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2"
-        >
-          <motion.div
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-            className="w-6 h-10 border-2 border-border rounded-full flex items-start justify-center pt-1.5"
-          >
-            <div className="w-1.5 h-2.5 bg-ink-muted rounded-full" />
-          </motion.div>
-        </motion.div>
-      </section>
-
-      {/* ── Stats ─────────────────────────────────────────────────────── */}
-      <section className="py-16 border-y border-border bg-surface">
-        <div className="max-w-5xl mx-auto px-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[
-              { value: "2,400+", label: "Active students",   icon: Users,       color: "accent"  },
-              { value: "380+",   label: "Verified jobs",     icon: Briefcase,   color: "emerald" },
-              { value: "140+",   label: "Companies hiring",  icon: TrendingUp,  color: "amber"   },
-              { value: "94%",    label: "Match rate",        icon: CheckCircle2, color: "emerald" },
-            ].map((stat, i) => (
-              <FadeUp key={stat.label} delay={i * 0.1}>
-                <StatCard {...stat} />
-              </FadeUp>
-            ))}
+            <div className="mt-4 flex flex-wrap items-center gap-2" aria-label="Popular job filters">
+              <span className="mr-1 text-xs font-medium text-text-muted">Explore:</span>
+              <Link href="/jobs?type=INTERNSHIP" className="inline-flex min-h-10 items-center rounded-full border border-border bg-surface px-3 text-sm text-text transition-colors hover:border-primary hover:bg-primary-soft">Internships</Link>
+              <Link href="/jobs?location=remote" className="inline-flex min-h-10 items-center rounded-full border border-border bg-surface px-3 text-sm text-text transition-colors hover:border-primary hover:bg-primary-soft">Remote</Link>
+              <Link href="/jobs?posted=7d" className="inline-flex min-h-10 items-center rounded-full border border-border bg-surface px-3 text-sm text-text transition-colors hover:border-primary hover:bg-primary-soft">New this week</Link>
+            </div>
           </div>
-        </div>
-      </section>
 
-      {/* ── Features ──────────────────────────────────────────────────── */}
-      <section id="features" className="py-24">
-        <div className="max-w-6xl mx-auto px-4">
-          <FadeUp>
-            <div className="text-center mb-16">
-              <span className="inline-block bg-accent/10 text-accent text-xs font-semibold px-3 py-1.5 rounded-full mb-4 uppercase tracking-wider">
-                Everything you need
-              </span>
-              <h2 className="font-heading text-4xl font-bold text-ink mb-4">
-                Built for the way students work
-              </h2>
-              <p className="text-ink-muted max-w-xl mx-auto">
-                From applying in two clicks to real-time conversations with employers — every feature is designed to get you hired faster.
+          <aside aria-label="Latest approved opportunity" className="min-w-0">
+            {featuredPost ? (
+              <div className="mx-auto max-w-lg lg:ml-auto">
+                <div className="mb-3 flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase text-text-muted">A live opportunity</p>
+                    <p className="mt-1 text-sm text-text-muted">Updated from current approved listings</p>
+                  </div>
+                  <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-status-approved-bg px-3 py-1.5 text-xs font-semibold text-status-approved-text">
+                    <BadgeCheck size={15} aria-hidden="true" />Verified
+                  </span>
+                </div>
+                <JobCard
+                  id={featuredPost.id}
+                  title={featuredPost.title}
+                  companyName={featuredPost.recruiter.companyName}
+                  recruiterVerified={featuredPost.recruiter.verificationStatus === "APPROVED"}
+                  location={featuredPost.location}
+                  type={featuredPost.type}
+                  imageUrl={featuredPost.imageUrl}
+                  createdAt={featuredPost.createdAt}
+                  hourlyRate={featuredPost.hourlyRate}
+                  dailyRate={featuredPost.dailyRate}
+                  fields={featuredPost.fields}
+                  maxApplicants={featuredPost.maxApplicants}
+                  approvedCount={featuredPost.approvedCount}
+                  isFull={featuredPost.isFull}
+                />
+                <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border pt-4 text-sm text-text-muted">
+                  <span><strong className="tabular-nums text-text">{posts.length}</strong> open opportunities</span>
+                  <span><strong className="tabular-nums text-text">{verifiedCompanies}</strong> verified {verifiedCompanies === 1 ? "company" : "companies"}</span>
+                </div>
+              </div>
+            ) : listingsState === "loading" ? (
+              <div className="mx-auto max-w-lg space-y-3 lg:ml-auto" aria-label="Loading latest opportunity">
+                <div className="h-5 w-40 animate-pulse rounded bg-surface-2" />
+                <div className="h-56 animate-pulse rounded-xl border border-border bg-surface-2" />
+                <div className="h-5 w-56 animate-pulse rounded bg-surface-2" />
+              </div>
+            ) : (
+              <div className="mx-auto max-w-lg border-y border-border py-8 lg:ml-auto">
+                <div className="grid size-11 place-items-center rounded-full bg-primary-soft text-primary"><BriefcaseBusiness size={20} aria-hidden="true" /></div>
+                <h2 className="mt-4 font-heading text-2xl font-semibold text-text">Your next role starts here.</h2>
+                <p className="mt-2 max-w-md text-sm leading-relaxed text-text-muted">{listingsState === "error" ? "The latest opportunities could not be loaded just now." : "New approved jobs will appear here as recruiters post them."}</p>
+                {listingsState === "error" && <button type="button" onClick={() => { setListingsState("loading"); setRetryVersion((version) => version + 1); }} className="mt-4 min-h-11 cursor-pointer rounded-lg border border-border px-4 text-sm font-semibold text-primary hover:bg-primary-soft">Retry</button>}
+                <Link href="/jobs" className="mt-5 inline-flex min-h-11 items-center gap-2 font-semibold text-primary hover:underline">Browse jobs <ArrowRight size={16} aria-hidden="true" /></Link>
+              </div>
+            )}
+          </aside>
+        </section>
+
+        <section aria-labelledby="latest-jobs-heading" className="border-y border-border bg-surface py-10 md:py-12">
+          <div className="mx-auto w-full max-w-7xl px-4">
+            <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-primary">Approved and ready to explore</p>
+                <h2 id="latest-jobs-heading" className="mt-1 font-heading text-2xl font-semibold text-text sm:text-3xl">Latest opportunities</h2>
+              </div>
+              <Link href="/jobs" className="inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-primary transition-colors hover:bg-primary-soft">
+                Browse all jobs <ArrowRight size={16} aria-hidden="true" />
+              </Link>
+            </div>
+
+            {listingsState === "loading" ? (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Loading jobs">
+                {Array.from({ length: 4 }, (_, index) => <div key={index} className="h-52 animate-pulse rounded-xl border border-border bg-surface-2" />)}
+              </div>
+            ) : listingsState === "error" ? (
+              <div className="flex flex-wrap items-center justify-between gap-4 border-y border-border py-6" role="alert">
+                <p className="text-sm text-text-muted">We couldn&apos;t load the latest jobs. Your search page is still available.</p>
+                <button type="button" onClick={() => { setListingsState("loading"); setRetryVersion((version) => version + 1); }} className="min-h-11 cursor-pointer rounded-lg border border-border px-4 text-sm font-semibold text-primary hover:bg-primary-soft">Retry</button>
+              </div>
+            ) : latestPosts.length === 0 ? (
+              <div className="border-y border-border py-8">
+                <p className="font-heading text-lg font-semibold text-text">No approved opportunities yet</p>
+                <p className="mt-1 text-sm text-text-muted">Check back soon, or browse the job page to try a search.</p>
+                <Link href="/jobs" className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-on-primary hover:bg-primary-hover">Browse jobs <ArrowRight size={16} aria-hidden="true" /></Link>
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {latestPosts.map((post) => (
+                  <JobCard
+                    key={post.id}
+                    id={post.id}
+                    title={post.title}
+                    companyName={post.recruiter.companyName}
+                    recruiterVerified={post.recruiter.verificationStatus === "APPROVED"}
+                    location={post.location}
+                    type={post.type}
+                    imageUrl={post.imageUrl}
+                    createdAt={post.createdAt}
+                    hourlyRate={post.hourlyRate}
+                    dailyRate={post.dailyRate}
+                    fields={post.fields}
+                    maxApplicants={post.maxApplicants}
+                    approvedCount={post.approvedCount}
+                    isFull={post.isFull}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        <section id="how-it-works" className="mx-auto w-full max-w-7xl scroll-mt-20 px-4 py-12 md:py-16">
+          <div className="max-w-2xl">
+            <p className="text-sm font-semibold text-primary">A clear next step at every stage</p>
+            <h2 className="mt-2 font-heading text-3xl font-semibold text-text">From profile to reply</h2>
+          </div>
+          <ol className="mt-7 grid gap-6 border-t border-border pt-6 md:grid-cols-3 md:gap-8">
+            {STEPS.map(({ number, icon: Icon, title, description }) => (
+              <li key={number} className="flex gap-4">
+                <span className="grid size-11 shrink-0 place-items-center rounded-full bg-primary-soft text-primary"><Icon size={19} aria-hidden="true" /></span>
+                <div>
+                  <p className="text-xs font-semibold tabular-nums text-text-muted">STEP {number}</p>
+                  <h3 className="mt-1 font-heading text-lg font-semibold text-text">{title}</h3>
+                  <p className="mt-1 max-w-sm text-sm leading-relaxed text-text-muted">{description}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        <section aria-labelledby="messaging-heading" className="border-y border-border bg-surface">
+          <div className="mx-auto grid w-full max-w-7xl items-center gap-8 px-4 py-10 md:grid-cols-[0.9fr_1.1fr] md:gap-14 md:py-14">
+            <div className="max-w-xl">
+              <p className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
+                <MessageSquare size={17} aria-hidden="true" />
+                After your application is approved
               </p>
-            </div>
-          </FadeUp>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              { icon: Zap,          title: "Instant applications",      description: "Apply with your saved CV in one click. No re-filling forms every time.", color: "accent",  delay: 0 },
-              { icon: ShieldCheck,  title: "Verified employers only",   description: "Every recruiter is reviewed by our admin team before posting jobs.",       color: "emerald", delay: 0.1 },
-              { icon: Bell,         title: "Real-time notifications",   description: "Get instant alerts when your application status changes or you receive a message.", color: "amber",  delay: 0.2 },
-              { icon: MessageSquare,title: "Direct messaging",          description: "Chat directly with recruiters after approval — no email chains needed.",   color: "accent",  delay: 0.3 },
-              { icon: FileText,     title: "Smart job matching",        description: "Filter by field, location, pay rate, and duration to find the perfect fit.", color: "emerald", delay: 0.4 },
-              { icon: TrendingUp,   title: "Application tracking",      description: "Track every application in one dashboard — see status, dates, and documents.", color: "amber",  delay: 0.5 },
-            ].map((f) => (
-              <FeatureCard key={f.title} {...f} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── How it works ──────────────────────────────────────────────── */}
-      <section id="how-it-works" className="py-24 bg-surface border-y border-border">
-        <div className="max-w-5xl mx-auto px-4">
-          <FadeUp>
-            <div className="text-center mb-16">
-              <span className="inline-block bg-emerald/10 text-emerald text-xs font-semibold px-3 py-1.5 rounded-full mb-4 uppercase tracking-wider">
-                Simple process
-              </span>
-              <h2 className="font-heading text-4xl font-bold text-ink mb-4">
-                From profile to hired in 3 steps
-              </h2>
-            </div>
-          </FadeUp>
-
-          <div className="grid md:grid-cols-2 gap-16 items-start">
-            {/* Students */}
-            <FadeUp delay={0.1}>
-              <div>
-                <div className="flex items-center gap-2 mb-8">
-                  <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
-                    <GraduationCap className="w-4 h-4 text-white" />
-                  </div>
-                  <h3 className="font-heading text-xl font-semibold text-ink">For Students</h3>
-                </div>
-                <div className="flex flex-col">
-                  <Step number="01" icon={Users} title="Create your profile" description="Sign up, add your university and major, upload your CV once. Done in under 2 minutes." />
-                  <Step number="02" icon={FileText} title="Browse & apply" description="Search approved jobs filtered by field, location, pay, and duration. Apply in one tap." />
-                  <Step number="03" icon={MessageSquare} title="Get hired & chat" description="When a recruiter approves you, a direct messaging thread opens automatically." />
-                </div>
-              </div>
-            </FadeUp>
-
-            {/* Recruiters */}
-            <FadeUp delay={0.2}>
-              <div>
-                <div className="flex items-center gap-2 mb-8">
-                  <div className="w-8 h-8 rounded-lg bg-emerald flex items-center justify-center">
-                    <Briefcase className="w-4 h-4 text-white" />
-                  </div>
-                  <h3 className="font-heading text-xl font-semibold text-ink">For Recruiters</h3>
-                </div>
-                <div className="flex flex-col">
-                  <Step number="01" icon={ShieldCheck} title="Get verified" description="Submit your business registration. Our admins review and approve your account." />
-                  <Step number="02" icon={FileText} title="Post your job" description="Create a listing with fields, compensation, spots, and duration. Admins approve it." />
-                  <Step number="03" icon={Users} title="Review & hire" description="Browse applicants, download CVs, approve candidates, and message them directly." />
-                </div>
-              </div>
-            </FadeUp>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Testimonials ──────────────────────────────────────────────── */}
-      <section id="testimonials" className="py-24">
-        <div className="max-w-6xl mx-auto px-4">
-          <FadeUp>
-            <div className="text-center mb-16">
-              <span className="inline-block bg-amber/10 text-amber text-xs font-semibold px-3 py-1.5 rounded-full mb-4 uppercase tracking-wider">
-                What people say
-              </span>
-              <h2 className="font-heading text-4xl font-bold text-ink mb-4">
-                Loved by students & employers
-              </h2>
-            </div>
-          </FadeUp>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {[
-              { quote: "I found a part-time graphic design job in my neighbourhood within a week. The whole process was so smooth — from applying to chatting with the recruiter.", name: "Yasmine B.", role: "Design student, Tunis", avatar: "Y", delay: 0 },
-              { quote: "We hired two interns through PartJob. The verification system means we get serious applicants only, and the messaging feature saved us hours of back-and-forth.", name: "Karim D.", role: "Tech startup, Sfax", avatar: "K", delay: 0.1 },
-              { quote: "As an accounting student, I was worried I wouldn't find anything relevant. PartJob's field filters helped me find exactly the finance internship I needed.", name: "Sana M.", role: "Finance student, Sousse", avatar: "S", delay: 0.2 },
-            ].map(({ delay, ...t }) => (
-              <FadeUp key={t.name} delay={delay}>
-                <Testimonial {...t} />
-              </FadeUp>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── CTA section ───────────────────────────────────────────────── */}
-      <section className="py-24 relative overflow-hidden">
-        {/* Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-accent/10 via-bg to-emerald/8 pointer-events-none" />
-        <motion.div
-          animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.8, 0.5] }}
-          transition={{ duration: 8, repeat: Infinity }}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-accent/5 rounded-full blur-3xl pointer-events-none"
-        />
-
-        <div className="relative max-w-3xl mx-auto px-4 text-center">
-          <FadeUp>
-            <div className="inline-flex items-center gap-2 bg-accent/15 border border-accent/25 text-accent text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
-              <Star className="w-3.5 h-3.5 fill-accent" />
-              Start for free today
-            </div>
-
-            <h2 className="font-heading text-4xl md:text-5xl font-bold text-ink mb-6 leading-tight">
-              Your next opportunity<br />is one click away
-            </h2>
-
-            <p className="text-ink-muted text-lg mb-10 max-w-xl mx-auto">
-              Join thousands of students and verified employers already using PartJob to make campus hiring fast, simple, and human.
-            </p>
-
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              <Link href="/register/student">
-                <motion.button
-                  whileHover={{ scale: 1.03, y: -2 }}
-                  whileTap={{ scale: 0.97 }}
-                  className="flex items-center gap-2 px-7 py-4 bg-accent text-white font-semibold rounded-xl text-base hover:bg-accent-hover transition-colors shadow-2xl shadow-accent/30"
-                >
-                  I&apos;m a student <ChevronRight className="w-4 h-4" />
-                </motion.button>
-              </Link>
-              <Link href="/register/recruiter">
-                <motion.button
-                  whileHover={{ scale: 1.03, y: -2 }}
-                  whileTap={{ scale: 0.97 }}
-                  className="flex items-center gap-2 px-7 py-4 bg-surface border border-border text-ink font-semibold rounded-xl text-base hover:border-emerald/50 hover:bg-emerald/5 transition-colors"
-                >
-                  I&apos;m a recruiter <ChevronRight className="w-4 h-4" />
-                </motion.button>
+              <h2 id="messaging-heading" className="mt-3 font-heading text-3xl font-semibold text-text sm:text-4xl">Your next step is a real conversation.</h2>
+              <p className="mt-3 text-base leading-relaxed text-text-muted">
+                When a recruiter approves your application, PartJob opens a private conversation with them. Ask about the role, agree on next steps, and keep the details with your application.
+              </p>
+              <Link href="/jobs" className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-lg font-semibold text-primary transition-colors hover:underline">
+                Find a role to apply for <ArrowRight size={17} aria-hidden="true" />
               </Link>
             </div>
-          </FadeUp>
-        </div>
-      </section>
 
-      {/* ── Footer ────────────────────────────────────────────────────── */}
-      <footer className="border-t border-border bg-surface py-12">
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-accent flex items-center justify-center">
-                <Briefcase className="w-4 h-4 text-white" />
+            <div className="mx-auto w-full max-w-xl rounded-xl border border-border bg-bg p-4 sm:p-5" aria-label="Example conversation after application approval">
+              <div className="flex items-center gap-3 border-b border-border pb-3">
+                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-primary-soft text-primary">
+                  <BriefcaseBusiness size={18} aria-hidden="true" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold text-text">Campus cafe · Recruiter</p>
+                  <p className="text-xs text-text-muted">Conversation opened after approval</p>
+                </div>
+                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-status-approved-bg px-2.5 py-1.5 text-xs font-semibold text-status-approved-text">
+                  <CheckCircle2 size={14} aria-hidden="true" />Approved
+                </span>
               </div>
-              <span className="font-heading text-lg font-semibold text-ink">PartJob</span>
+
+              <div className="flex min-h-40 flex-col gap-3 py-4" aria-label="Example messages">
+                <p className="max-w-[88%] self-start rounded-xl border border-border bg-surface px-3.5 py-2.5 text-sm leading-relaxed text-text">
+                  Hi, we reviewed your application. Are you available to meet this week?
+                </p>
+                <p className="max-w-[88%] self-end rounded-xl bg-primary-soft px-3.5 py-2.5 text-sm leading-relaxed text-text">
+                  Thank you! Thursday afternoon works well for me.
+                </p>
+              </div>
+
+              <div className="flex min-h-11 items-center gap-3 rounded-lg border border-border bg-surface px-3 text-sm text-text-muted" aria-hidden="true">
+                <span className="flex-1">Write a message</span>
+                <Send size={17} className="text-primary" />
+              </div>
+              <p className="mt-3 text-xs text-text-muted">Example preview. Conversations are available after recruiter approval.</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="border-y border-border bg-primary-soft">
+          <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-8 sm:flex-row sm:items-center sm:justify-between md:py-10">
+            <div className="max-w-2xl">
+              <p className="inline-flex items-center gap-2 text-sm font-semibold text-primary"><ShieldCheck size={17} aria-hidden="true" />For recruiters</p>
+              <h2 className="mt-2 font-heading text-2xl font-semibold text-text">Hire students who fit your team.</h2>
+              <p className="mt-1 text-sm leading-relaxed text-text-muted">Get verified, share the role details, and review applications in one place.</p>
+            </div>
+            <Link href="/register/recruiter" className="inline-flex min-h-12 shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-hover">
+              Post a job <ArrowRight size={17} aria-hidden="true" />
             </Link>
+          </div>
+        </section>
+      </main>
 
-            <p className="text-sm text-ink-muted text-center">
-              © {new Date().getFullYear()} PartJob. Built for Tunisian students.
-            </p>
-
-            <div className="flex items-center gap-4 text-sm text-ink-muted">
-              <Link href="/login"    className="hover:text-ink transition-colors">Sign in</Link>
-              <Link href="/register" className="hover:text-ink transition-colors">Register</Link>
-            </div>
+      <footer className="bg-bg">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-6 sm:flex-row sm:items-center sm:justify-between">
+          <Link href="/" className="font-heading text-lg font-semibold text-text">PartJob</Link>
+          <p className="text-sm text-text-muted">© {new Date().getFullYear()} PartJob · Built for students and verified recruiters.</p>
+          <div className="flex items-center gap-4 text-sm">
+            <Link href="/jobs" className="min-h-11 inline-flex items-center text-text-muted hover:text-primary">Browse jobs</Link>
+            <Link href="/login" className="min-h-11 inline-flex items-center text-text-muted hover:text-primary">Log in</Link>
           </div>
         </div>
       </footer>

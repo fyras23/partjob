@@ -1,0 +1,302 @@
+{
+  "version": 1,
+  "project": {
+    "name": "partjob",
+    "productType": null,
+    "stack": [
+      "nextjs",
+      "react",
+      "tailwind-v4"
+    ]
+  },
+  "sources": {
+    "tokens": [
+      "app/globals.css"
+    ],
+    "components": [
+      "components/ui"
+    ],
+    "assets": [],
+    "instructions": [
+      "AGENTS.md",
+      "CLAUDE.md"
+    ]
+  },
+  "design": {
+    "colorMode": "light",
+    "colors": {
+      "--color-bg": {
+        "value": "var(--bg)",
+        "source": "app/globals.css"
+      },
+      "--color-surface": {
+        "value": "var(--surface)",
+        "source": "app/globals.css"
+      },
+      "--color-surface-2": {
+        "value": "var(--surface-2)",
+        "source": "app/globals.css"
+      },
+      "--color-border": {
+        "value": "var(--border)",
+        "source": "app/globals.css"
+      },
+      "--color-text": {
+        "value": "var(--text)",
+        "source": "app/globals.css"
+      },
+      "--color-text-muted": {
+        "value": "var(--text-muted)",
+        "source": "app/globals.css"
+      },
+      "--color-primary": {
+        "value": "var(--primary)",
+        "source": "app/globals.css"
+      },
+      "--color-primary-hover": {
+        "value": "var(--primary-hover)",
+        "source": "app/globals.css"
+      },
+      "--color-on-primary": {
+        "value": "var(--on-primary)",
+        "source": "app/globals.css"
+      },
+      "--color-primary-soft": {
+        "value": "var(--primary-soft)",
+        "source": "app/globals.css"
+      },
+      "--color-highlight": {
+        "value": "var(--highlight)",
+        "source": "app/globals.css"
+      },
+      "--color-highlight-soft": {
+        "value": "var(--highlight-soft)",
+        "source": "app/globals.css"
+      },
+      "--color-focus-ring": {
+        "value": "var(--focus-ring)",
+        "source": "app/globals.css"
+      },
+      "--color-status-pending-text": {
+        "value": "var(--status-pending-text)",
+        "source": "app/globals.css"
+      },
+      "--color-status-pending-bg": {
+        "value": "var(--status-pending-bg)",
+        "source": "app/globals.css"
+      },
+      "--color-status-approved-text": {
+        "value": "var(--status-approved-text)",
+        "source": "app/globals.css"
+      },
+      "--color-status-approved-bg": {
+        "value": "var(--status-approved-bg)",
+        "source": "app/globals.css"
+      },
+      "--color-status-rejected-text": {
+        "value": "var(--status-rejected-text)",
+        "source": "app/globals.css"
+      },
+      "--color-status-rejected-bg": {
+        "value": "var(--status-rejected-bg)",
+        "source": "app/globals.css"
+      },
+      "--color-status-info-text": {
+        "value": "var(--status-info-text)",
+        "source": "app/globals.css"
+      },
+      "--color-status-info-bg": {
+        "value": "var(--status-info-bg)",
+        "source": "app/globals.css"
+      },
+      "--color-ink": {
+        "value": "var(--text)",
+        "source": "app/globals.css"
+      },
+      "--color-ink-muted": {
+        "value": "var(--text-muted)",
+        "source": "app/globals.css"
+      },
+      "--color-ink-faint": {
+        "value": "var(--text-muted)",
+        "source": "app/globals.css"
+      },
+      "--color-accent": {
+        "value": "var(--primary)",
+        "source": "app/globals.css"
+      },
+      "--color-accent-hover": {
+        "value": "var(--primary-hover)",
+        "source": "app/globals.css"
+      },
+      "--color-accent-soft": {
+        "value": "var(--primary-soft)",
+        "source": "app/globals.css"
+      },
+      "--color-emerald": {
+        "value": "var(--status-approved-text)",
+        "source": "app/globals.css"
+      },
+      "--color-emerald-soft": {
+        "value": "var(--status-approved-bg)",
+        "source": "app/globals.css"
+      },
+      "--color-amber": {
+        "value": "var(--status-pending-text)",
+        "source": "app/globals.css"
+      },
+      "--color-amber-soft": {
+        "value": "var(--status-pending-bg)",
+        "source": "app/globals.css"
+      },
+      "--color-success": {
+        "value": "var(--status-approved-text)",
+        "source": "app/globals.css"
+      },
+      "--color-warning": {
+        "value": "var(--status-pending-text)",
+        "source": "app/globals.css"
+      },
+      "--color-error": {
+        "value": "var(--status-rejected-text)",
+        "source": "app/globals.css"
+      },
+      "--color-error-soft": {
+        "value": "var(--status-rejected-bg)",
+        "source": "app/globals.css"
+      },
+      "--color-pending": {
+        "value": "var(--status-pending-text)",
+        "source": "app/globals.css"
+      },
+      "--border": {
+        "value": "#6B7D81",
+        "source": "app/globals.css"
+      },
+      "--text-muted": {
+        "value": "#9AABAE",
+        "source": "app/globals.css"
+      },
+      "--primary": {
+        "value": "#4DB2BC",
+        "source": "app/globals.css"
+      },
+      "--primary-hover": {
+        "value": "#6CC6CF",
+        "source": "app/globals.css"
+      },
+      "--on-primary": {
+        "value": "#08181B",
+        "source": "app/globals.css"
+      },
+      "--primary-soft": {
+        "value": "#17353A",
+        "source": "app/globals.css"
+      },
+      "--focus-ring": {
+        "value": "#6CC6CF",
+        "source": "app/globals.css"
+      }
+    },
+    "typography": {
+      "--font-heading": {
+        "value": "var(--font-bricolage), system-ui, sans-serif",
+        "source": "app/globals.css"
+      },
+      "--font-body": {
+        "value": "var(--font-public-sans), system-ui, sans-serif",
+        "source": "app/globals.css"
+      },
+      "--text": {
+        "value": "#E6EDED",
+        "source": "app/globals.css"
+      },
+      "--status-pending-text": {
+        "value": "#F2C56B",
+        "source": "app/globals.css"
+      },
+      "--status-approved-text": {
+        "value": "#6FD09C",
+        "source": "app/globals.css"
+      },
+      "--status-rejected-text": {
+        "value": "#F28AA0",
+        "source": "app/globals.css"
+      },
+      "--status-info-text": {
+        "value": "#4DB2BC",
+        "source": "app/globals.css"
+      }
+    },
+    "spacing": {},
+    "radius": {},
+    "shadows": {
+      "--shadow-card": {
+        "value": "none",
+        "source": "app/globals.css"
+      }
+    },
+    "motion": {},
+    "density": "unknown"
+  },
+  "components": {
+    "installed": [
+      "Avatar",
+      "Button",
+      "ChatBot",
+      "EmptyState",
+      "FieldPicker",
+      "Input",
+      "JobCard",
+      "NotificationBell",
+      "StatusBadge",
+      "ThemeToggle",
+      "Toast",
+      "UploadDropzone"
+    ],
+    "preferredPrimitives": [
+      "radix-ui"
+    ],
+    "patterns": []
+  },
+  "constraints": {
+    "must": [],
+    "avoid": []
+  },
+  "decisions": [],
+  "evidence": [
+    {
+      "fact": "components.installed",
+      "source": "components/ui"
+    },
+    {
+      "fact": "design.colorMode:light",
+      "source": "app/globals.css"
+    },
+    {
+      "fact": "design.tokens",
+      "source": "app/globals.css"
+    },
+    {
+      "fact": "project.instructions",
+      "source": "AGENTS.md"
+    },
+    {
+      "fact": "project.instructions",
+      "source": "CLAUDE.md"
+    },
+    {
+      "fact": "project.stack:nextjs",
+      "source": "package.json"
+    },
+    {
+      "fact": "project.stack:react",
+      "source": "package.json"
+    },
+    {
+      "fact": "project.stack:tailwind-v4",
+      "source": "package.json"
+    }
+  ],
+  "generatedAt": "2026-09-28T20:11:15.610Z"
+}

@@ -1,96 +1,145 @@
-@import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap");
 @import "tailwindcss";
 
-/* ── Tailwind v4 theme ───────────────────────────────────────────────────── */
-@theme {
-  /* Backgrounds */
-  --color-bg:           #0F1117;
-  --color-surface:      #181C27;
-  --color-surface-2:    #1F2437;
-  --color-surface-3:    #262B3D;
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-on-primary: var(--on-primary);
+  --color-primary-soft: var(--primary-soft);
+  --color-highlight: var(--highlight);
+  --color-highlight-soft: var(--highlight-soft);
+  --color-focus-ring: var(--focus-ring);
+  --color-status-pending-text: var(--status-pending-text);
+  --color-status-pending-bg: var(--status-pending-bg);
+  --color-status-approved-text: var(--status-approved-text);
+  --color-status-approved-bg: var(--status-approved-bg);
+  --color-status-rejected-text: var(--status-rejected-text);
+  --color-status-rejected-bg: var(--status-rejected-bg);
+  --color-status-info-text: var(--status-info-text);
+  --color-status-info-bg: var(--status-info-bg);
+  --font-heading: var(--font-bricolage), system-ui, sans-serif;
+  --font-body: var(--font-public-sans), system-ui, sans-serif;
 
-  /* Text */
-  --color-ink:          #F0F2F8;
-  --color-ink-muted:    #8B91A8;
-  --color-ink-faint:    #4A5068;
-
-  /* Borders */
-  --color-border:       #2A2F45;
-  --color-border-focus: #5B6AD0;
-
-  /* Accent — electric indigo */
-  --color-accent:       #5B6AD0;
-  --color-accent-hover: #4A58BE;
-  --color-accent-soft:  #1E2340;
-  --color-accent-glow:  #5B6AD033;
-
-  /* Emerald — success / recruiter */
-  --color-emerald:      #10B981;
-  --color-emerald-soft: #0D2D22;
-
-  /* Amber — warning / admin */
-  --color-amber:        #F59E0B;
-  --color-amber-soft:   #2D1F06;
-
-  /* Semantic */
-  --color-success:      #10B981;
-  --color-warning:      #F59E0B;
-  --color-error:        #EF4444;
-  --color-error-soft:   #2D0A0A;
-  --color-pending:      #8B91A8;
-
-  /* Fonts */
-  --font-heading: "Outfit", system-ui, sans-serif;
-  --font-body:    "Plus Jakarta Sans", system-ui, sans-serif;
+  --color-ink: var(--text);
+  --color-ink-muted: var(--text-muted);
+  --color-ink-faint: var(--text-muted);
+  --color-accent: var(--primary);
+  --color-accent-hover: var(--primary-hover);
+  --color-accent-soft: var(--primary-soft);
+  --color-emerald: var(--status-approved-text);
+  --color-emerald-soft: var(--status-approved-bg);
+  --color-amber: var(--status-pending-text);
+  --color-amber-soft: var(--status-pending-bg);
+  --color-success: var(--status-approved-text);
+  --color-warning: var(--status-pending-text);
+  --color-error: var(--status-rejected-text);
+  --color-error-soft: var(--status-rejected-bg);
+  --color-pending: var(--status-pending-text);
 }
 
-/* ── Base ────────────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --bg: #F6F3EE;
+  --surface: #FFFFFF;
+  --surface-2: #EFEBE4;
+  --border: #8D8579;
+  --text: #1A2124;
+  --text-muted: #5C6669;
+  --primary: #0E5A62;
+  --primary-hover: #0A464D;
+  --on-primary: #FFFFFF;
+  --primary-soft: #DCEEEF;
+  --highlight: #B8461F;
+  --highlight-soft: #F8E4DA;
+  --focus-ring: #0E5A62;
+  --status-pending-text: #8A5A00;
+  --status-pending-bg: #FBF0D5;
+  --status-approved-text: #1F6B47;
+  --status-approved-bg: #DFF2E7;
+  --status-rejected-text: #A3213D;
+  --status-rejected-bg: #FADDE3;
+  --status-info-text: #0E5A62;
+  --status-info-bg: #DCEEEF;
+  --shadow-card: 0 1px 2px rgba(26, 33, 36, 0.06);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0E1416;
+  --surface: #151E21;
+  --surface-2: #1C282C;
+  --border: #6B7D81;
+  --text: #E6EDED;
+  --text-muted: #9AABAE;
+  --primary: #4DB2BC;
+  --primary-hover: #6CC6CF;
+  --on-primary: #08181B;
+  --primary-soft: #17353A;
+  --highlight: #F0A070;
+  --highlight-soft: #3A2519;
+  --focus-ring: #6CC6CF;
+  --status-pending-text: #F2C56B;
+  --status-pending-bg: #33290F;
+  --status-approved-text: #6FD09C;
+  --status-approved-bg: #15301F;
+  --status-rejected-text: #F28AA0;
+  --status-rejected-bg: #3A1520;
+  --status-info-text: #4DB2BC;
+  --status-info-bg: #17353A;
+  --shadow-card: none;
+}
+
 html {
-  background-color: #0F1117;
-  color: #F0F2F8;
-  font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+  min-height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-public-sans), system-ui, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 body {
   min-height: 100dvh;
-  background-color: #0F1117;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-public-sans), system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.55;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: "Outfit", system-ui, sans-serif;
+  color: var(--text);
+  font-family: var(--font-bricolage), system-ui, sans-serif;
   font-weight: 600;
-  letter-spacing: -0.025em;
+  line-height: 1.2;
 }
 
-/* ── Focus ring ──────────────────────────────────────────────────────────── */
 :focus-visible {
-  outline: 2px solid #5B6AD0;
+  outline: 2px solid var(--focus-ring);
   outline-offset: 2px;
 }
 
-/* ── Scrollbar ───────────────────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #0F1117; }
-::-webkit-scrollbar-thumb { background: #2A2F45; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #3A4055; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-/* ── Selection ───────────────────────────────────────────────────────────── */
-::selection { background: #5B6AD033; color: #F0F2F8; }
+::selection { background: var(--primary-soft); color: var(--text); }
 
-/* ── Gradient text utility ───────────────────────────────────────────────── */
-.gradient-text {
-  background: linear-gradient(135deg, #5B6AD0 0%, #9B8DD4 50%, #5B6AD0 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* ── Glow card ───────────────────────────────────────────────────────────── */
-.glow-card {
-  box-shadow: 0 0 0 1px #2A2F45, 0 4px 24px #5B6AD012;
-}
-.glow-card:hover {
-  box-shadow: 0 0 0 1px #5B6AD0, 0 4px 32px #5B6AD022;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
           { description: { contains: search, mode: "insensitive" } },
         ] } : {}),
     },
-    include: { recruiter: { select: { companyName: true } } },
+    include: { recruiter: { select: { companyName: true, verificationStatus: true } } },
     orderBy: { createdAt: "desc" },
   });
 

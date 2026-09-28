@@ -1,9 +1,9 @@
 "use client";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { startTransition, useState, useRef, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  MessageSquare, X, Send, Loader2, Bot,
+  X, Send, Loader2, Bot,
   Briefcase, ChevronRight, Sparkles,
 } from "lucide-react";
 import clsx from "clsx";
@@ -181,7 +181,7 @@ export function ChatBot() {
       const greeting = session?.user
         ? `Hi ${session.user.name?.split(" ")[0]} 👋 I'm your PartJob assistant. I can help you find jobs, answer questions about applications, and more. What can I help you with?`
         : "Hi 👋 I'm the PartJob assistant! I can help you find jobs, explain how to sign up, or answer any questions. What would you like to know?";
-      setMessages([{ role: "assistant", content: greeting }]);
+      startTransition(() => setMessages([{ role: "assistant", content: greeting }]));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session]);
@@ -191,7 +191,7 @@ export function ChatBot() {
   }, [messages]);
 
   useEffect(() => {
-    if (open) setUnread(0);
+    if (open) startTransition(() => setUnread(0));
   }, [open]);
 
   const sendMessage = useCallback(async (text: string) => {
@@ -371,7 +371,7 @@ export function ChatBot() {
         animate={open ? { scale: 1 } : { scale: [1, 1.05, 1] }}
         transition={open ? {} : { duration: 3, repeat: Infinity, repeatDelay: 5 }}
         className={clsx(
-          "fixed bottom-4 right-4 z-[300]",
+          "fixed bottom-20 right-4 z-[300] md:bottom-4",
           "w-14 h-14 rounded-2xl shadow-2xl",
           "flex items-center justify-center",
           "transition-colors duration-200",
