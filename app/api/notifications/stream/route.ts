@@ -22,7 +22,7 @@ export async function GET() {
       // Immediately confirm connection
       ctrl.enqueue(encoder.encode(`: connected\n\n`));
 
-      // Heartbeat every 20s — keeps the connection alive through proxies/Vercel
+      // Heartbeat keeps the connection alive through proxies and hosting layers.
       const heartbeat = setInterval(() => {
         try {
           ctrl.enqueue(encoder.encode(`: ping\n\n`));
@@ -32,8 +32,16 @@ export async function GET() {
         }
       }, 20_000);
 
+      const maxStreamLifetime = setTimeout(() => {
+        try {
+          ctrl.close();
+        } catch { /* Already closed by the client. */ }
+        cleanup();
+      }, 55_000);
+
       function cleanup() {
         clearInterval(heartbeat);
+        clearTimeout(maxStreamLifetime);
         subscribers.get(userId)?.delete(ctrl);
         if (subscribers.get(userId)?.size === 0) subscribers.delete(userId);
       }

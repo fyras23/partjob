@@ -31,8 +31,13 @@ function LoginForm() {
     const sessionRes = await fetch("/api/auth/session");
     const session = await sessionRes.json();
     const role = session?.user?.role;
+    const requestedPath = params.get("from");
+    const returnPath = requestedPath?.startsWith("/") && !requestedPath.startsWith("//")
+      ? requestedPath
+      : null;
 
-    if (role === "ADMIN")          router.push("/admin");
+    if (returnPath)                router.push(returnPath);
+    else if (role === "ADMIN")    router.push("/admin");
     else if (role === "RECRUITER") router.push("/dashboard");
     else                           router.push("/jobs");
   }

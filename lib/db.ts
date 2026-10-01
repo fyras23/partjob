@@ -20,7 +20,7 @@ if (!process.env.DATABASE_URL) {
 // ── Version tag — bump this whenever you regenerate Prisma ────────────────────
 // This forces a new client instance when the schema changes, clearing the
 // stale globalThis cache in Next.js dev mode.
-const SCHEMA_VERSION = "v10"; // student rating system added
+const SCHEMA_VERSION = "v13"; // notification model is part of the generated Prisma client
 
 declare global {
   // eslint-disable-next-line no-var

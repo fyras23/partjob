@@ -4,8 +4,8 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import {
-  Bell, X, CheckCircle2, AlertCircle, Info,
-  FileText, UserCheck, Users, BriefcaseBusiness, Star,
+  Bell, X, CheckCircle2, Info,
+  FileText, UserCheck, Users, BriefcaseBusiness, Star, MessageCircle, CreditCard,
 } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { toast } from "./Toast";
@@ -13,16 +13,14 @@ import clsx from "clsx";
 
 /* ── Types ───────────────────────────────────────────────────────────────── */
 interface Notification {
-  id: number;
+  id: string;
   type: string;
   status: string;
   title: string;
   message: string;
-  read: boolean;
-  ts: number;
+  readAt: string | null;
+  ts: string;
 }
-
-let _id = 0;
 
 /* ── Icon / color maps ───────────────────────────────────────────────────── */
 const ICON_BY_TYPE: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -33,6 +31,8 @@ const ICON_BY_TYPE: Record<string, React.ComponentType<{ className?: string }>> 
   VERIFICATION_UPDATE:  UserCheck,
   APPLICATION_UPDATE:   CheckCircle2,
   STUDENT_RATED:        Star,
+  NEW_MESSAGE:          MessageCircle,
+  SUBSCRIPTION_ACTIVE:  CreditCard,
 };
 
 const BG_BY_STATUS: Record<string, string> = {
@@ -170,11 +170,32 @@ export function NotificationBell() {
   const btnRef = useRef<HTMLButtonElement>(null);
 
   const userId = session?.user?.id ?? null;
-  const unread = notifications.filter((n) => !n.read).length;
+  const unread = notifications.filter((n) => !n.readAt).length;
 
-  /* SSE connection */
+  /* Load durable notifications, then keep them synced with SSE and polling. */
   useEffect(() => {
     if (!userId) return;
+    let disposed = false;
+
+    async function syncNotifications() {
+      try {
+        const response = await fetch("/api/notifications", { cache: "no-store" });
+        if (!response.ok) return;
+        const data: unknown = await response.json();
+        if (disposed || !Array.isArray(data)) return;
+        setNotifications(data.map((item) => ({
+          id: item.id,
+          type: item.type ?? "INFO",
+          status: item.status ?? "PENDING",
+          title: item.title,
+          message: item.message ?? "",
+          readAt: item.readAt ?? null,
+          ts: item.createdAt,
+        })));
+      } catch { /* Keep the last loaded inbox while offline. */ }
+    }
+
+    void syncNotifications();
     const es = new EventSource("/api/notifications/stream");
 
     es.onmessage = (e) => {
@@ -182,19 +203,21 @@ export function NotificationBell() {
       if (!raw) return;
       try {
         const p = JSON.parse(raw);
-        if (!p.title) return;
+        if (!p.title || !p.id) return;
 
         const notif: Notification = {
-          id:      ++_id,
+          id:      p.id,
           type:    p.type    ?? "INFO",
           status:  p.status  ?? "PENDING",
           title:   p.title,
           message: p.message ?? "",
-          read:    false,
-          ts:      Date.now(),
+          readAt:  null,
+          ts:      p.ts ?? new Date().toISOString(),
         };
 
-        setNotifications((prev) => [notif, ...prev].slice(0, 50));
+        setNotifications((prev) => prev.some((item) => item.id === notif.id)
+          ? prev
+          : [notif, ...prev].slice(0, 50));
         setShake(true);
         setTimeout(() => setShake(false), 700);
         playSound();
@@ -205,16 +228,48 @@ export function NotificationBell() {
       } catch { /* non-JSON SSE comment */ }
     };
 
-    return () => es.close();
+    const syncInterval = window.setInterval(() => void syncNotifications(), 30_000);
+
+    return () => {
+      disposed = true;
+      window.clearInterval(syncInterval);
+      es.close();
+    };
   }, [userId]);
 
-  const markAllRead = useCallback(() => {
-    setNotifications((p) => p.map((n) => ({ ...n, read: true })));
+  const markAllRead = useCallback(async () => {
+    const readAt = new Date().toISOString();
+    setNotifications((items) => items.map((item) => ({ ...item, readAt: item.readAt ?? readAt })));
+    try {
+      await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "read-all" }),
+      });
+    } catch { /* The next inbox sync will restore server state. */ }
   }, []);
 
-  const dismiss = useCallback((id: number, e: React.MouseEvent) => {
+  const dismiss = useCallback(async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setNotifications((p) => p.filter((n) => n.id !== id));
+    try {
+      await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "dismiss", id }),
+      });
+    } catch { /* The next inbox sync will restore server state. */ }
+  }, []);
+
+  const clearAll = useCallback(async () => {
+    setNotifications([]);
+    try {
+      await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "clear-all" }),
+      });
+    } catch { /* The next inbox sync will restore server state. */ }
   }, []);
 
   function toggle() {
@@ -245,7 +300,7 @@ export function NotificationBell() {
         <div className="flex items-center gap-2">
           {notifications.length > 0 && (
             <button
-              onClick={() => setNotifications([])}
+              onClick={() => void clearAll()}
               className="text-xs text-ink-muted hover:text-error transition-colors font-medium px-2 py-1 rounded-md hover:bg-error/10"
             >
               Clear all
@@ -286,29 +341,29 @@ export function NotificationBell() {
               const Icon  = ICON_BY_TYPE[n.type] ?? Info;
               const bg    = BG_BY_STATUS[n.status]   ?? BG_BY_STATUS.default;
               const color = TEXT_BY_STATUS[n.status] ?? TEXT_BY_STATUS.default;
-              const time  = new Date(n.ts).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+              const time  = new Date(n.ts).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" });
 
               return (
                 <li
                   key={n.id}
                   className={clsx(
                     "group flex items-start gap-3 px-4 py-3.5 transition-colors",
-                    !n.read ? "bg-accent/[0.04] hover:bg-accent/[0.07]" : "hover:bg-surface-2/60"
+                    !n.readAt ? "bg-accent/4 hover:bg-accent/7" : "hover:bg-surface-2/60"
                   )}
                 >
                   <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5", bg)}>
-                    <Icon className={clsx("w-[18px] h-[18px]", color)} />
+                    <Icon className={clsx("w-4.5 h-4.5", color)} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <p className="text-sm font-semibold text-ink leading-snug">{n.title}</p>
-                      {!n.read && <span className="mt-1.5 w-2 h-2 rounded-full bg-accent shrink-0 ring-2 ring-accent/20" />}
+                      {!n.readAt && <span className="mt-1.5 w-2 h-2 rounded-full bg-accent shrink-0 ring-2 ring-accent/20" />}
                     </div>
                     <p className="text-xs text-ink-muted mt-0.5 leading-relaxed">{n.message}</p>
                     <p className="text-[11px] text-ink-faint mt-1.5 font-medium">{time}</p>
                   </div>
                   <button
-                    onClick={(e) => dismiss(n.id, e)}
+                    onClick={(e) => void dismiss(n.id, e)}
                     className="mt-0.5 shrink-0 opacity-0 group-hover:opacity-100 w-6 h-6 rounded-md flex items-center justify-center text-ink-faint hover:text-error hover:bg-error/10 transition-all"
                     aria-label="Dismiss"
                   >
@@ -350,7 +405,7 @@ export function NotificationBell() {
           shake && "animate-[bellShake_0.5s_ease-in-out]"
         )}
       >
-        <Bell className="w-[17px] h-[17px]" />
+        <Bell className="w-4.25 h-4.25" />
 
         {/* Unread badge */}
         {unread > 0 && (
@@ -358,7 +413,7 @@ export function NotificationBell() {
             aria-hidden
             className={clsx(
               "absolute -top-1.5 -right-1.5",
-              "min-w-[20px] h-5 px-1",
+              "min-w-5 h-5 px-1",
               "bg-error text-white text-[11px] font-bold",
               "rounded-full flex items-center justify-center",
               "border-2 border-bg",

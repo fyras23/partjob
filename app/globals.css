@@ -133,6 +133,16 @@ h1, h2, h3, h4, h5, h6 {
 
 ::selection { background: var(--primary-soft); color: var(--text); }
 
+@keyframes landing-photo-drift {
+  from { transform: scale(1.015); }
+  to { transform: scale(1.06); }
+}
+
+.landing-photo-motion {
+  animation: landing-photo-drift 22s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -141,5 +151,11 @@ h1, h2, h3, h4, h5, h6 {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .landing-photo-motion {
+    animation: none !important;
+    transform: scale(1) !important;
+    will-change: auto;
   }
 }

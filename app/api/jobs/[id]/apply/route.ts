@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { ApplySchema } from "@/lib/validate";
 import { Errors, zodMessage } from "@/lib/errors";
-import { pushNotification } from "@/lib/notificationBus";
+import { createNotification } from "@/lib/notificationBus";
 
 export async function POST(
   req: NextRequest,
@@ -61,12 +61,19 @@ export async function POST(
   });
 
   // Notify the recruiter
-  pushNotification(post.recruiter.userId, {
+  await createNotification(prisma, post.recruiter.userId, {
     type:    "NEW_APPLICATION",
     status:  "PENDING",
     postId,
     title:   "New application received",
     message: `${session.user.name} applied to "${post.title}"`,
+  });
+  await createNotification(prisma, session.user.id, {
+    type: "APPLICATION_UPDATE",
+    status: "PENDING",
+    postId,
+    title: "Application submitted",
+    message: `Your application for "${post.title}" was sent to ${post.recruiter.companyName}.`,
   });
 
   return NextResponse.json(application, { status: 201 });

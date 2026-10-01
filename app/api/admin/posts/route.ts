@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
-import { Errors, zodMessage } from "@/lib/errors";
+import { Errors } from "@/lib/errors";
 import type { PostStatus } from "@prisma/client";
 
 // GET /api/admin/posts?status=PENDING
@@ -10,12 +10,17 @@ export async function GET(req: NextRequest) {
   if (!session) return Errors.unauthorized();
   if (session.user.role !== "ADMIN") return Errors.forbidden();
 
-  const status = req.nextUrl.searchParams.get("status") as PostStatus | null;
+  const status = req.nextUrl.searchParams.get("status");
+  const where = status === "APPEALED"
+    ? { status: "REJECTED" as PostStatus, appealedAt: { not: null }, appealMessage: { not: null } }
+    : status
+      ? { status: status as PostStatus }
+      : {};
 
   const posts = await prisma.post.findMany({
-    where: status ? { status } : {},
+    where,
     include: {
-      recruiter: { select: { companyName: true } },
+      recruiter: { select: { companyName: true, userId: true } },
     },
     orderBy: { createdAt: "desc" },
   });

@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { ReviewSchema } from "@/lib/validate";
 import { Errors, zodMessage } from "@/lib/errors";
-import { pushNotification } from "@/lib/notificationBus";
+import { createNotification } from "@/lib/notificationBus";
 
 export async function PATCH(
   req: NextRequest,
@@ -55,7 +55,7 @@ export async function PATCH(
   }
 
   // Notify the student in real time
-  pushNotification(application.student.userId, {
+  await createNotification(prisma, application.student.userId, {
     type:    "APPLICATION_UPDATE",
     status:  parsed.data.status,
     postId:  application.postId,

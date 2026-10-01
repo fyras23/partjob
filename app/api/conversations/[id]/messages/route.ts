@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { Errors } from "@/lib/errors";
-import { pushNotification } from "@/lib/notificationBus";
+import { createNotification } from "@/lib/notificationBus";
 import { z } from "zod";
 
 const SendSchema = z.object({ content: z.string().min(1).max(2000) });
@@ -91,7 +91,7 @@ export async function POST(
   // Push real-time notification to the other participant
   const recipientId =
     conv.recruiterUserId === userId ? conv.studentUserId : conv.recruiterUserId;
-  pushNotification(recipientId, {
+  await createNotification(prisma, recipientId, {
     type:           "NEW_MESSAGE",
     status:         "PENDING",
     conversationId,

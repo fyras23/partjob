@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { ReviewSchema } from "@/lib/validate";
 import { Errors, zodMessage } from "@/lib/errors";
-import { pushNotification } from "@/lib/notificationBus";
+import { createNotification } from "@/lib/notificationBus";
 
 export async function DELETE(
   _req: Request,
@@ -17,6 +17,9 @@ export async function DELETE(
 
   const post = await prisma.post.findUnique({ where: { id } });
   if (!post) return Errors.notFound("Post");
+  if (post.status !== "REJECTED" || !post.moderationReason || !post.appealedAt || !post.appealMessage) {
+    return Errors.badRequest("Admins can act on a post only after its recruiter submits an appeal.");
+  }
 
   await prisma.application.deleteMany({ where: { postId: id } });
   await prisma.post.delete({ where: { id } });
@@ -39,6 +42,9 @@ export async function PATCH(
     include: { recruiter: { select: { userId: true } } },
   });
   if (!post) return Errors.notFound("Post");
+  if (post.status !== "REJECTED" || !post.moderationReason || !post.appealedAt || !post.appealMessage) {
+    return Errors.badRequest("Admins can review a post only after its recruiter submits an appeal.");
+  }
 
   const body = await req.json();
   const parsed = ReviewSchema.safeParse(body);
@@ -50,18 +56,20 @@ export async function PATCH(
       status: parsed.data.status,
       approvedById: session.user.id,
       approvedAt: parsed.data.status === "APPROVED" ? new Date() : null,
+      rejectionReason: parsed.data.status === "REJECTED" ? parsed.data.reason : null,
+      appealedAt: null,
     },
   });
 
   // Notify the recruiter whose post was reviewed
-  pushNotification(post.recruiter.userId, {
+  await createNotification(prisma, post.recruiter.userId, {
     type:    "POST_UPDATE",
     status:  parsed.data.status,
     postId:  id,
-    title:   parsed.data.status === "APPROVED" ? `Post approved: ${post.title}` : `Post rejected: ${post.title}`,
+    title:   parsed.data.status === "APPROVED" ? `Appeal accepted: ${post.title}` : `Appeal declined: ${post.title}`,
     message: parsed.data.status === "APPROVED"
-      ? "Your job post is now live and visible to students."
-      : "Your job post was rejected. You can edit and resubmit it.",
+      ? "An admin accepted your appeal. Your post is now live for students."
+      : `An admin reviewed your appeal and kept the post rejected. Reason: ${parsed.data.reason}`,
   });
 
   return NextResponse.json(updated);

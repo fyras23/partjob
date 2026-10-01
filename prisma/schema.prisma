@@ -70,6 +70,7 @@ model User {
   approvedPosts        Post[]             @relation("ApprovedBy")
   reviewedApplications Application[]      @relation("ReviewedBy")
   sentMessages         Message[]          @relation("SentMessages")
+  notifications        Notification[]
 }
 
 model RecruiterProfile {
@@ -127,6 +128,10 @@ model Post {
   dailyRate     Float?
   maxApplicants Int?
   status        PostStatus       @default(PENDING)
+  moderationReason String?
+  rejectionReason String?
+  appealMessage String?
+  appealedAt    DateTime?
   approvedById  String?
   approvedBy    User?            @relation("ApprovedBy", fields: [approvedById], references: [id])
   approvedAt    DateTime?
@@ -195,6 +200,23 @@ model Message {
   content        String
   readAt         DateTime?
   createdAt      DateTime     @default(now())
+}
+
+model Notification {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type           String
+  status         String
+  title          String
+  message        String
+  postId         String?
+  conversationId String?
+  readAt         DateTime?
+  createdAt      DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, readAt])
 }
 
 model MembershipConfig {

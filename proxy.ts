@@ -12,6 +12,7 @@ const ROLE_HOME: Record<string, string> = {
 // ── Page route guards ──────────────────────────────────────────────────────
 // Format: { prefix, allowedRoles[] }
 const PAGE_GUARDS = [
+  { prefix: "/jobs",              roles: ["ADMIN", "RECRUITER", "STUDENT"] },
   { prefix: "/admin",              roles: ["ADMIN"] },
   { prefix: "/dashboard",          roles: ["RECRUITER", "STUDENT"] },
   // Recruiter-only sub-routes inside /dashboard
@@ -34,6 +35,12 @@ export default auth((req: NextRequest & { auth: { user?: { role?: string } } | n
   const loggedIn = !!session?.user;
 
   // ── API routes ─────────────────────────────────────────────────────────
+  if (pathname === "/api/jobs" || pathname.startsWith("/api/jobs/")) {
+    if (!loggedIn) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  }
+
   for (const [prefix, requiredRole] of Object.entries(API_GUARDS)) {
     if (pathname.startsWith(prefix)) {
       if (!loggedIn) {
@@ -57,7 +64,7 @@ export default auth((req: NextRequest & { auth: { user?: { role?: string } } | n
       // Not logged in → go to login
       if (!loggedIn) {
         const loginUrl = new URL("/login", req.nextUrl.origin);
-        loginUrl.searchParams.set("from", pathname);
+        loginUrl.searchParams.set("from", `${pathname}${req.nextUrl.search}`);
         return NextResponse.redirect(loginUrl);
       }
 
@@ -81,7 +88,10 @@ export const config = {
     "/api/recruiter/:path*",
     "/api/student/:path*",
     "/api/jobs/:path*",
+    "/api/jobs",
     // Page routes — protect all role-scoped pages
+    "/jobs/:path*",
+    "/jobs",
     "/admin/:path*",
     "/admin",
     "/dashboard/:path*",

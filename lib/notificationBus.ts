@@ -38,15 +38,50 @@ export function pushNotification(userId: string, payload: object) {
 
 import type { PrismaClient } from "@prisma/client";
 
+interface NotificationPayload {
+  type?: string;
+  status?: string;
+  title: string;
+  message?: string;
+  postId?: string;
+  conversationId?: string;
+  [key: string]: unknown;
+}
+
+export async function createNotification(
+  prisma: PrismaClient,
+  userId: string,
+  payload: NotificationPayload,
+) {
+  const notification = await prisma.notification.create({
+    data: {
+      userId,
+      type: payload.type ?? "INFO",
+      status: payload.status ?? "PENDING",
+      title: payload.title,
+      message: payload.message ?? "",
+      postId: payload.postId,
+      conversationId: payload.conversationId,
+    },
+  });
+
+  pushNotification(userId, {
+    ...payload,
+    id: notification.id,
+    readAt: null,
+    ts: notification.createdAt.toISOString(),
+  });
+
+  return notification;
+}
+
 /**
- * Push a notification to ALL currently connected admin users.
+ * Persist and deliver a notification to every admin, online or offline.
  */
-export async function pushToAllAdmins(prisma: PrismaClient, payload: object) {
+export async function pushToAllAdmins(prisma: PrismaClient, payload: NotificationPayload) {
   const admins = await prisma.user.findMany({
     where: { role: "ADMIN" },
     select: { id: true },
   });
-  for (const admin of admins) {
-    pushNotification(admin.id, payload);
-  }
+  await Promise.all(admins.map((admin) => createNotification(prisma, admin.id, payload)));
 }

@@ -3,7 +3,8 @@ import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { CreatePostSchema } from "@/lib/validate";
 import { Errors, zodMessage } from "@/lib/errors";
-import { pushToAllAdmins } from "@/lib/notificationBus";
+import { createNotification } from "@/lib/notificationBus";
+import { moderatePostContent } from "@/lib/postModeration";
 
 // GET /api/recruiter/posts — list own posts
 export async function GET() {
@@ -48,6 +49,20 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return Errors.badRequest(zodMessage(parsed.error));
 
   const d = parsed.data;
+  const moderation = await moderatePostContent([
+    d.title,
+    d.description,
+    d.location,
+    ...d.fields,
+  ].filter(Boolean).join("\n"));
+  if (!moderation) {
+    return NextResponse.json(
+      { error: "Post screening is temporarily unavailable. Please try again shortly." },
+      { status: 503 },
+    );
+  }
+
+  const automaticallyRejected = moderation.inappropriate;
 
   const post = await prisma.post.create({
     data: {
@@ -63,17 +78,21 @@ export async function POST(req: NextRequest) {
       dailyRate:   d.dailyRate   ?? null,
       maxApplicants: d.maxApplicants ?? null,
       recruiterId: profile.id,
-      status:      "PENDING",
+      status:      automaticallyRejected ? "REJECTED" : "APPROVED",
+      moderationReason: automaticallyRejected ? moderation.reason : null,
+      rejectionReason: automaticallyRejected ? moderation.reason : null,
+      approvedAt: automaticallyRejected ? null : new Date(),
     },
   });
 
-  // Notify all admins in real time
-  await pushToAllAdmins(prisma, {
-    type:    "NEW_POST",
-    status:  "PENDING",
-    postId:  post.id,
-    title:   "New post pending review",
-    message: `${profile.companyName} submitted a new ${post.type.toLowerCase()} post: "${post.title}"`,
+  await createNotification(prisma, session.user.id, {
+    type: "POST_UPDATE",
+    status: post.status,
+    postId: post.id,
+    title: automaticallyRejected ? `Post rejected: ${post.title}` : `Post published: ${post.title}`,
+    message: automaticallyRejected
+      ? `Your post was automatically rejected. Reason: ${moderation.reason} You can appeal from My Posts for an admin to review it.`
+      : "Your post passed automatic screening and is now live for students.",
   });
 
   return NextResponse.json(post, { status: 201 });

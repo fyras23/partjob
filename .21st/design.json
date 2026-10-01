@@ -263,7 +263,9 @@
     "must": [],
     "avoid": []
   },
-  "decisions": [],
+  "decisions": [
+     "Promotional landing: full-bleed campus collaboration photography under token-based light/dark overlays, slow image drift disabled for reduced motion, and interactive Lucide benefit icons. Guest pages remain job-data-free; search returns through login."
+  ],
   "evidence": [
     {
       "fact": "components.installed",

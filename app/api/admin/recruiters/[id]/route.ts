@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { ReviewSchema } from "@/lib/validate";
 import { Errors, zodMessage } from "@/lib/errors";
-import { pushNotification } from "@/lib/notificationBus";
+import { createNotification } from "@/lib/notificationBus";
 
 export async function PATCH(
   req: NextRequest,
@@ -32,7 +32,7 @@ export async function PATCH(
   });
 
   // Push real-time notification to the recruiter
-  pushNotification(profile.userId, {
+  await createNotification(prisma, profile.userId, {
     type:    "VERIFICATION_UPDATE",
     status:  parsed.data.status,
     title:   parsed.data.status === "APPROVED" ? "Account approved!" : "Verification rejected",

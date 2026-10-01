@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
 import prisma from "@/lib/db";
-import { pushNotification } from "@/lib/notificationBus";
+import { createNotification } from "@/lib/notificationBus";
 
 export const dynamic = "force-dynamic";
 
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Notify the recruiter in real-time
-    pushNotification(profile.user.id, {
+    await createNotification(prisma, profile.user.id, {
       type:    "SUBSCRIPTION_ACTIVE",
       status:  "APPROVED",
       title:   "Membership activated!",

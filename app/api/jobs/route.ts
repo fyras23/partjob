@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
+import { auth } from "@/lib/auth";
+import { Errors } from "@/lib/errors";
 
 export async function GET(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user) return Errors.unauthorized();
+
   const { searchParams } = new URL(req.url);
   const type     = searchParams.get("type") as "JOB" | "INTERNSHIP" | null;
   const location = searchParams.get("location");

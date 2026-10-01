@@ -109,13 +109,22 @@ export default function EditPostPage() {
       }),
     });
     setSubmitting(false);
+    const responseData = await res.json().catch(() => null);
 
     if (!res.ok) {
-      const d = await res.json();
-      toast.error(d.error ?? "Failed to update post.");
+      toast.error(responseData?.error ?? "Could not update the post. Please try again.");
       return;
     }
-    toast.success(currentStatus === "APPROVED" ? "Post updated — sent back for review." : "Post updated.");
+    if (!responseData) {
+      toast.error("The server returned an unreadable response. Check My Posts before trying again.");
+      return;
+    }
+    const updated = responseData;
+    if (updated.status === "REJECTED") {
+      toast.error(`The edited post was rejected automatically. Reason: ${updated.moderationReason ?? "It may contain inappropriate content."}`);
+    } else {
+      toast.success("The edited post passed automatic screening and is live.");
+    }
     router.push("/dashboard/posts");
   }
 
@@ -132,13 +141,14 @@ export default function EditPostPage() {
       </Link>
       <div>
         <h1 className="font-heading text-3xl font-semibold text-ink">Edit post</h1>
+        <p className="mt-1 text-sm text-ink-muted">Saving runs automatic screening again. Approved edits go live immediately; rejected edits can be appealed.</p>
       </div>
 
       {currentStatus === "APPROVED" && (
         <div className="flex items-start gap-3 bg-amber/10 border border-amber/30 rounded-xl px-4 py-3">
           <AlertTriangle className="w-5 h-5 text-amber shrink-0 mt-0.5" />
           <p className="text-sm text-ink">
-            This post is <strong>Approved</strong>. Saving will send it back for review.
+            This post is live. Saving your changes will run automatic screening before updating it.
           </p>
         </div>
       )}
@@ -207,7 +217,7 @@ export default function EditPostPage() {
           {/* Positions */}
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-ink">Number of positions</label>
-            <div className="relative max-w-[200px]">
+            <div className="relative max-w-50">
               <input
                 type="number" min="1" step="1"
                 value={maxApplicants}

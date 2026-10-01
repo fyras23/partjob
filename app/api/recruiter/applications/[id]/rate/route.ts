@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { RateStudentSchema } from "@/lib/validate";
 import { Errors, zodMessage } from "@/lib/errors";
-import { pushNotification } from "@/lib/notificationBus";
+import { createNotification } from "@/lib/notificationBus";
 
 export async function POST(
   req: NextRequest,
@@ -55,7 +55,7 @@ export async function POST(
   });
 
   if (studentUser) {
-    pushNotification(studentUser.id, {
+    await createNotification(prisma, studentUser.id, {
       type: "STUDENT_RATED",
       status: "APPROVED",
       title: "You received a new rating",

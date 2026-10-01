@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { VerifySchema } from "@/lib/validate";
 import { Errors, zodMessage } from "@/lib/errors";
-import { pushToAllAdmins } from "@/lib/notificationBus";
+import { createNotification, pushToAllAdmins } from "@/lib/notificationBus";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -39,6 +39,12 @@ export async function POST(req: NextRequest) {
     status:  "PENDING",
     title:   "New recruiter verification",
     message: `${companyName} submitted a verification request and is awaiting approval.`,
+  });
+  await createNotification(prisma, session.user.id, {
+    type: "VERIFICATION_UPDATE",
+    status: "PENDING",
+    title: "Verification submitted",
+    message: "Your business documents were sent to the admin team. We’ll notify you when they review them.",
   });
 
   return NextResponse.json(profile, { status: 200 });

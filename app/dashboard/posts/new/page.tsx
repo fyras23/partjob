@@ -80,7 +80,12 @@ export default function NewPostPage() {
       toast.error(d.error ?? "Failed to create post.");
       return;
     }
-    toast.success("Post created — pending admin approval.");
+    const post = await res.json();
+    if (post.status === "REJECTED") {
+      toast.error(`Post automatically rejected. Reason: ${post.moderationReason ?? "It may contain inappropriate content."}`);
+    } else {
+      toast.success("Post passed screening and is now live.");
+    }
     router.push("/dashboard/posts");
   }
 
@@ -92,7 +97,7 @@ export default function NewPostPage() {
 
       <div>
         <h1 className="font-heading text-3xl font-semibold text-ink">New post</h1>
-        <p className="text-sm text-ink-muted mt-1">Your post will be reviewed by an admin before going live.</p>
+        <p className="text-sm text-ink-muted mt-1">Posts are screened automatically. Approved posts go live immediately; rejected posts can be appealed to an admin.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
@@ -176,7 +181,7 @@ export default function NewPostPage() {
             <label className="text-sm font-medium text-ink flex items-center gap-1.5">
               Number of positions
             </label>
-            <div className="relative max-w-[200px]">
+            <div className="relative max-w-50">
               <input
                 type="number" min="1" step="1"
                 value={maxApplicants}

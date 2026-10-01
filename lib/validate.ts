@@ -59,4 +59,12 @@ export const RateStudentSchema = z.object({
 
 export const ReviewSchema = z.object({
   status: z.enum(["APPROVED", "REJECTED"]),
+  reason: z.string().trim().max(500).optional(),
+}).refine((value) => value.status !== "REJECTED" || Boolean(value.reason), {
+  message: "A rejection reason is required",
+  path: ["reason"],
+});
+
+export const PostAppealSchema = z.object({
+  message: z.string().trim().min(10).max(1000),
 });
