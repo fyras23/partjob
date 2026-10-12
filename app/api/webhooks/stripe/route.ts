@@ -1,20 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
-import { stripe } from "@/lib/stripe";
-import prisma from "@/lib/db";
-import { createNotification } from "@/lib/notificationBus";
+import { getStripe } from "@/lib/stripe";
+import { activateMembershipFromCheckout } from "@/lib/stripeMembership";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   const body = await req.text();
   const sig  = req.headers.get("stripe-signature") ?? "";
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    console.error("STRIPE_WEBHOOK_SECRET is not configured");
+    return NextResponse.json({ error: "Webhook is not configured" }, { status: 500 });
+  }
 
   let event;
   try {
-    event = stripe.webhooks.constructEvent(
+    event = getStripe().webhooks.constructEvent(
       body,
       sig,
-      process.env.STRIPE_WEBHOOK_SECRET!
+      webhookSecret
     );
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
@@ -22,38 +26,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object;
-    const { recruiterId, plan, months } = session.metadata ?? {};
-
-    if (!recruiterId || !plan || !months) {
-      return NextResponse.json({ error: "Missing metadata" }, { status: 400 });
-    }
-
-    const monthCount = parseInt(months, 10);
-    const start = new Date();
-    const end   = new Date(start);
-    end.setMonth(end.getMonth() + monthCount);
-
-    const profile = await prisma.recruiterProfile.update({
-      where: { id: recruiterId },
-      data: {
-        subscriptionStatus:   "ACTIVE",
-        subscriptionPlan:     plan as "MONTHLY" | "YEARLY",
-        subscriptionStart:    start,
-        subscriptionEnd:      end,
-        stripeSubscriptionId: session.id,
-      },
-      include: { user: { select: { id: true, name: true } } },
-    });
-
-    // Notify the recruiter in real-time
-    await createNotification(prisma, profile.user.id, {
-      type:    "SUBSCRIPTION_ACTIVE",
-      status:  "APPROVED",
-      title:   "Membership activated!",
-      message: `Your ${plan.toLowerCase()} membership is now active until ${end.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}. You can now post jobs.`,
-    });
+  if (
+    event.type === "checkout.session.completed" ||
+    event.type === "checkout.session.async_payment_succeeded"
+  ) {
+    const result = await activateMembershipFromCheckout(event.data.object);
+    return NextResponse.json({ received: true, membershipStatus: result.status });
   }
 
   return NextResponse.json({ received: true });

@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const origin = req.headers.get("origin") ?? "http://localhost:3000";
+    const origin = new URL(process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin).origin;
 
     const checkoutSession = await stripe.checkout.sessions.create({
       customer:   customerId,
