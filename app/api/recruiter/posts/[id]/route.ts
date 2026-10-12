@@ -1,10 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { UpdatePostSchema } from "@/lib/validate";
 import { Errors, zodMessage } from "@/lib/errors";
 import { createNotification } from "@/lib/notificationBus";
-import { moderatePostContent } from "@/lib/postModeration";
+import {
+  postModerationHash,
+  postModerationText,
+  kickPostModerationQueue,
+} from "@/lib/postModerationQueue";
 
 // PATCH /api/recruiter/posts/:id — edit own post
 export async function PATCH(
@@ -35,21 +39,7 @@ export async function PATCH(
   const description = d.description ?? post.description;
   const location = d.location !== undefined ? d.location : post.location;
   const fields = d.fields ?? post.fields;
-  const moderation = await moderatePostContent([
-    title,
-    description,
-    location,
-    ...fields,
-  ].filter(Boolean).join("\n"));
-  if (!moderation) {
-    return NextResponse.json(
-      { error: "Post screening is temporarily unavailable. Your changes were not saved. Please try again shortly." },
-      { status: 503 },
-    );
-  }
-
-  const automaticallyRejected = moderation.inappropriate;
-
+  const content = postModerationText({ title, description, location, fields });
   const updated = await prisma.post.update({
     where: { id },
     data: {
@@ -64,25 +54,27 @@ export async function PATCH(
       ...(d.hourlyRate    !== undefined && { hourlyRate:    d.hourlyRate    ?? null }),
       ...(d.dailyRate     !== undefined && { dailyRate:     d.dailyRate     ?? null }),
       ...(d.maxApplicants !== undefined && { maxApplicants: d.maxApplicants ?? null }),
-      status: automaticallyRejected ? "REJECTED" : "APPROVED",
-      moderationReason: automaticallyRejected ? moderation.reason : null,
-      rejectionReason: automaticallyRejected ? moderation.reason : null,
+      status: "PENDING",
+      moderationReason: null,
+      rejectionReason: null,
       appealMessage: null,
       appealedAt: null,
       approvedById: null,
-      approvedAt: automaticallyRejected ? null : new Date(),
+      approvedAt: null,
+      moderationTasks: {
+        create: { contentHash: postModerationHash(content) },
+      },
     },
   });
 
   await createNotification(prisma, session.user.id, {
     type: "POST_UPDATE",
-    status: updated.status,
+    status: "PENDING",
     postId: updated.id,
-    title: automaticallyRejected ? `Post rejected: ${updated.title}` : `Post published: ${updated.title}`,
-    message: automaticallyRejected
-      ? `Your edited post was rejected by automatic screening. Reason: ${moderation.reason} You can appeal from My Posts for an admin to review it.`
-      : "Your edited post passed automatic screening and is live for students.",
+    title: `Screening started: ${updated.title}`,
+    message: "Your edited post is queued for automatic screening. It will go live if approved, and you’ll be notified of the decision.",
   });
 
-  return NextResponse.json(updated);
+  after(kickPostModerationQueue);
+  return NextResponse.json({ ...updated, screeningStatus: "QUEUED" }, { status: 202 });
 }

@@ -16,6 +16,7 @@ interface Post {
   rejectionReason?: string | null;
   appealMessage?: string | null;
   appealedAt?: string | null;
+  moderationTasks?: { status: string; attempts: number; lastError?: string | null }[];
 }
 
 export default function RecruiterPostsPage() {
@@ -35,6 +36,19 @@ export default function RecruiterPostsPage() {
       setProfile(prof?.id ? prof : null);
       setLoading(false);
     }).catch(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      fetch("/api/recruiter/posts", { cache: "no-store" })
+        .then((response) => response.json())
+        .then((data) => {
+          if (Array.isArray(data)) setPosts(data);
+        })
+        .catch(() => undefined);
+    }, 4000);
+
+    return () => window.clearInterval(interval);
   }, []);
 
   const canPost = profile?.verificationStatus === "APPROVED";
@@ -97,6 +111,7 @@ export default function RecruiterPostsPage() {
         <div className="flex flex-col gap-3">
           {posts.map((p) => {
             const date = new Date(p.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+            const screeningStatus = p.moderationTasks?.[0]?.status;
             return (
               <div key={p.id} className="bg-surface border border-border rounded-lg px-4 py-4 flex flex-wrap items-center gap-4">
                 <div className="flex-1 min-w-0">
@@ -112,7 +127,17 @@ export default function RecruiterPostsPage() {
                 <div className="flex items-center gap-3 shrink-0">
                   <StatusBadge status={p.status} />
                   <span className="text-xs text-ink-muted">
-                    {p.status === "APPROVED" ? "Live for students" : p.status === "PENDING" ? "Awaiting review" : "Not visible to students"}
+                    {p.status === "APPROVED"
+                      ? "Live for students"
+                      : p.status === "REJECTED"
+                        ? "Not visible to students"
+                        : screeningStatus === "PROCESSING"
+                          ? "Screening now"
+                          : screeningStatus === "FAILED"
+                            ? "Screening needs retry"
+                            : screeningStatus === "QUEUED"
+                              ? "Waiting in screening queue"
+                              : "Awaiting review"}
                   </span>
                   <div className="flex gap-2">
                     <Link href={`/dashboard/posts/${p.id}/edit`}>

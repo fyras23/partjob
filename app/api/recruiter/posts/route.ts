@@ -1,10 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import prisma from "@/lib/db";
 import { CreatePostSchema } from "@/lib/validate";
 import { Errors, zodMessage } from "@/lib/errors";
 import { createNotification } from "@/lib/notificationBus";
-import { moderatePostContent } from "@/lib/postModeration";
+import {
+  postModerationHash,
+  postModerationText,
+  kickPostModerationQueue,
+} from "@/lib/postModerationQueue";
 
 // GET /api/recruiter/posts — list own posts
 export async function GET() {
@@ -19,8 +23,19 @@ export async function GET() {
 
   const posts = await prisma.post.findMany({
     where: { recruiterId: profile.id },
+    include: {
+      moderationTasks: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: { status: true, attempts: true, lastError: true },
+      },
+    },
     orderBy: { createdAt: "desc" },
   });
+
+  if (posts.some((post) => post.moderationTasks.some((task) => task.status === "QUEUED"))) {
+    after(kickPostModerationQueue);
+  }
 
   return NextResponse.json(posts);
 }
@@ -49,21 +64,12 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) return Errors.badRequest(zodMessage(parsed.error));
 
   const d = parsed.data;
-  const moderation = await moderatePostContent([
-    d.title,
-    d.description,
-    d.location,
-    ...d.fields,
-  ].filter(Boolean).join("\n"));
-  if (!moderation) {
-    return NextResponse.json(
-      { error: "Post screening is temporarily unavailable. Please try again shortly." },
-      { status: 503 },
-    );
-  }
-
-  const automaticallyRejected = moderation.inappropriate;
-
+  const content = postModerationText({
+    title: d.title,
+    description: d.description,
+    location: d.location ?? null,
+    fields: d.fields,
+  });
   const post = await prisma.post.create({
     data: {
       title:       d.title,
@@ -78,22 +84,21 @@ export async function POST(req: NextRequest) {
       dailyRate:   d.dailyRate   ?? null,
       maxApplicants: d.maxApplicants ?? null,
       recruiterId: profile.id,
-      status:      automaticallyRejected ? "REJECTED" : "APPROVED",
-      moderationReason: automaticallyRejected ? moderation.reason : null,
-      rejectionReason: automaticallyRejected ? moderation.reason : null,
-      approvedAt: automaticallyRejected ? null : new Date(),
+      status: "PENDING",
+      moderationTasks: {
+        create: { contentHash: postModerationHash(content) },
+      },
     },
   });
 
   await createNotification(prisma, session.user.id, {
     type: "POST_UPDATE",
-    status: post.status,
+    status: "PENDING",
     postId: post.id,
-    title: automaticallyRejected ? `Post rejected: ${post.title}` : `Post published: ${post.title}`,
-    message: automaticallyRejected
-      ? `Your post was automatically rejected. Reason: ${moderation.reason} You can appeal from My Posts for an admin to review it.`
-      : "Your post passed automatic screening and is now live for students.",
+    title: `Screening started: ${post.title}`,
+    message: "Your post is queued for automatic screening. It will go live if approved, and you’ll be notified of the decision.",
   });
 
-  return NextResponse.json(post, { status: 201 });
+  after(kickPostModerationQueue);
+  return NextResponse.json({ ...post, screeningStatus: "QUEUED" }, { status: 202 });
 }

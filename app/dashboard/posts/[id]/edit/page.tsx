@@ -119,12 +119,7 @@ export default function EditPostPage() {
       toast.error("The server returned an unreadable response. Check My Posts before trying again.");
       return;
     }
-    const updated = responseData;
-    if (updated.status === "REJECTED") {
-      toast.error(`The edited post was rejected automatically. Reason: ${updated.moderationReason ?? "It may contain inappropriate content."}`);
-    } else {
-      toast.success("The edited post passed automatic screening and is live.");
-    }
+    toast.success("Changes saved. Automatic screening is running in the background.");
     router.push("/dashboard/posts");
   }
 

@@ -8,7 +8,7 @@ import { UploadDropzone } from "@/components/ui/UploadDropzone";
 import { FieldPicker } from "@/components/ui/FieldPicker";
 import { useUploadThing } from "@/lib/uploadthingClient";
 import Link from "next/link";
-import { ArrowLeft, Calendar, Clock, DollarSign } from "lucide-react";
+import { ArrowLeft, Calendar, Clock, DollarSign, CheckCircle2, Loader2 } from "lucide-react";
 import clsx from "clsx";
 
 type PostType = "JOB" | "INTERNSHIP";
@@ -34,6 +34,7 @@ export default function NewPostPage() {
   const [errors,     setErrors]     = useState<Record<string, string>>({});
   const [uploading,  setUploading]  = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [queuedPostTitle, setQueuedPostTitle] = useState<string | null>(null);
 
   const { startUpload } = useUploadThing("postImage");
 
@@ -74,19 +75,37 @@ export default function NewPostPage() {
       }),
     });
     setSubmitting(false);
+    const responseData = await res.json().catch(() => null);
 
     if (!res.ok) {
-      const d = await res.json();
-      toast.error(d.error ?? "Failed to create post.");
+      toast.error(responseData?.error ?? "Could not submit the post. Please try again.");
       return;
     }
-    const post = await res.json();
-    if (post.status === "REJECTED") {
-      toast.error(`Post automatically rejected. Reason: ${post.moderationReason ?? "It may contain inappropriate content."}`);
-    } else {
-      toast.success("Post passed screening and is now live.");
+    if (!responseData) {
+      toast.error("The server returned an unreadable response. Check My Posts before submitting again.");
+      return;
     }
-    router.push("/dashboard/posts");
+    setQueuedPostTitle(responseData.title ?? title);
+  }
+
+  if (queuedPostTitle) {
+    return (
+      <div className="flex flex-col gap-6 max-w-2xl" role="status" aria-live="polite">
+        <div className="flex items-start gap-4 rounded-xl border border-emerald/30 bg-emerald/10 p-5">
+          <CheckCircle2 className="mt-0.5 h-6 w-6 shrink-0 text-emerald" aria-hidden="true" />
+          <div>
+            <p className="font-heading text-xl font-semibold text-ink">Post added</p>
+            <p className="mt-1 text-sm text-ink">“{queuedPostTitle}” is saved and waiting in the automatic screening queue.</p>
+            <p className="mt-2 text-sm text-ink-muted">You can leave this page. Screening continues in the background, and your post status will update in My Posts when a decision is ready.</p>
+          </div>
+        </div>
+        <div>
+          <Button size="lg" onClick={() => router.push("/dashboard/posts")}>
+            View My Posts
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -97,7 +116,7 @@ export default function NewPostPage() {
 
       <div>
         <h1 className="font-heading text-3xl font-semibold text-ink">New post</h1>
-        <p className="text-sm text-ink-muted mt-1">Posts are screened automatically. Approved posts go live immediately; rejected posts can be appealed to an admin.</p>
+        <p className="text-sm text-ink-muted mt-1">Submit now and continue working while automatic screening runs. Approved posts go live; rejected posts can be appealed to an admin.</p>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6">
@@ -256,8 +275,9 @@ export default function NewPostPage() {
 
         {/* ── Actions ──────────────────────────────────────────────────── */}
         <div className="flex gap-3">
-          <Button type="submit" loading={uploading || submitting} size="lg">
-            {uploading ? "Uploading image…" : "Create post"}
+          <Button type="submit" disabled={uploading || submitting} size="lg">
+            {(uploading || submitting) && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+            {uploading ? "Uploading image…" : submitting ? "Adding post…" : "Add post"}
           </Button>
           <Button type="button" variant="secondary" size="lg" onClick={() => router.back()}>Cancel</Button>
         </div>

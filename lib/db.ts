@@ -20,7 +20,7 @@ if (!process.env.DATABASE_URL) {
 // ── Version tag — bump this whenever you regenerate Prisma ────────────────────
 // This forces a new client instance when the schema changes, clearing the
 // stale globalThis cache in Next.js dev mode.
-const SCHEMA_VERSION = "v13"; // notification model is part of the generated Prisma client
+const SCHEMA_VERSION = "v15"; // Supabase PostgreSQL schema generated
 
 declare global {
   // eslint-disable-next-line no-var
@@ -36,7 +36,7 @@ export const pool: Pool =
   globalThis._pgPool ??
   new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: true,
+    ssl: { rejectUnauthorized: false },
     max: 10,
   });
 

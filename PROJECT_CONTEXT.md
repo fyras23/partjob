@@ -19,7 +19,7 @@ A **campus job platform for Tunisia** where:
 |---|---|
 | Framework | Next.js 16.3.4 (App Router, Turbopack) |
 | Language | TypeScript 5 |
-| Database | CockroachDB (PostgreSQL-compatible, hosted on cockroachlabs.cloud) |
+| Database | PostgreSQL-compatible managed database |
 | ORM | Prisma v7.10 with `@prisma/adapter-pg` (driver adapter — **no binary engine**) |
 | Auth | NextAuth v5 beta (Credentials provider, JWT strategy) |
 | File uploads | UploadThing v7 |
