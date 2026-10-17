@@ -161,6 +161,20 @@ const QUICK_PROMPTS_STUDENT = [
   "How do I apply for a job?",
 ];
 
+const QUICK_PROMPTS_RECRUITER = [
+  "How do I get verified?",
+  "What are the current membership fees?",
+  "Check my membership status",
+  "How does post screening work?",
+];
+
+const QUICK_PROMPTS_ADMIN = [
+  "How does recruiter verification work?",
+  "What are the current membership fees?",
+  "How are job posts screened?",
+  "Show me approved jobs in Tunisia",
+];
+
 export function ChatBot() {
   const { data: session } = useSession();
   const [open, setOpen]       = useState(false);
@@ -173,14 +187,20 @@ export function ChatBot() {
 
   const role     = session?.user?.role;
   const isStudent = role === "STUDENT";
-  const quickPrompts = isStudent ? QUICK_PROMPTS_STUDENT : QUICK_PROMPTS_GUEST;
+  const quickPrompts = role === "ADMIN"
+    ? QUICK_PROMPTS_ADMIN
+    : role === "RECRUITER"
+      ? QUICK_PROMPTS_RECRUITER
+      : isStudent
+        ? QUICK_PROMPTS_STUDENT
+        : QUICK_PROMPTS_GUEST;
 
   // Welcome message
   useEffect(() => {
     if (messages.length === 0) {
       const greeting = session?.user
-        ? `Hi ${session.user.name?.split(" ")[0]} 👋 I'm your PartJob assistant. I can help you find jobs, answer questions about applications, and more. What can I help you with?`
-        : "Hi 👋 I'm the PartJob assistant! I can help you find jobs, explain how to sign up, or answer any questions. What would you like to know?";
+        ? `Hi ${session.user.name?.split(" ")[0]}. I'm the PartJob assistant. I can search current jobs and help with your ${role === "RECRUITER" ? "verification, membership, and posts" : role === "STUDENT" ? "applications and profile" : "admin and platform questions"}. What can I help with?`
+        : "Hi, I'm the PartJob assistant. I can search current jobs and explain sign-in, registration, applications, recruiter verification, and membership. What would you like to know?";
       startTransition(() => setMessages([{ role: "assistant", content: greeting }]));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -214,7 +234,8 @@ export function ChatBot() {
         }),
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? "The assistant is temporarily unavailable.");
       const reply = data.message ?? "Sorry, I couldn't process that. Please try again.";
 
       setMessages((prev) => [...prev, { role: "assistant", content: reply }]);
@@ -246,7 +267,7 @@ export function ChatBot() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="fixed bottom-20 right-4 z-[300] w-[calc(100vw-2rem)] max-w-sm flex flex-col bg-surface border border-border rounded-2xl shadow-2xl shadow-black/50 overflow-hidden"
+            className="fixed bottom-20 right-4 z-300 w-[calc(100vw-2rem)] max-w-sm flex flex-col bg-surface border border-border rounded-2xl shadow-2xl shadow-black/50 overflow-hidden"
             style={{ maxHeight: "min(520px, calc(100dvh - 120px))" }}
           >
             {/* Header */}
@@ -256,7 +277,7 @@ export function ChatBot() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-sm text-white">PartJob Assistant</p>
-                <p className="text-[11px] text-white/70">Powered by Llama 3 · Always here to help</p>
+                <p className="text-[11px] text-white/70">Live jobs and platform support</p>
               </div>
               <button
                 onClick={() => setOpen(false)}
@@ -280,7 +301,7 @@ export function ChatBot() {
                     </div>
                   )}
                   <div className={clsx(
-                    "px-3.5 py-2.5 rounded-2xl text-sm max-w-[82%] break-words",
+                    "px-3.5 py-2.5 rounded-2xl text-sm max-w-[82%] wrap-break-word",
                     msg.role === "user"
                       ? "bg-accent text-white rounded-br-sm ml-auto"
                       : "bg-surface-2 border border-border text-ink rounded-bl-sm"
@@ -339,16 +360,17 @@ export function ChatBot() {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKey}
                   placeholder="Ask me anything…"
+                  aria-label="Ask the PartJob Assistant"
                   rows={1}
                   disabled={loading}
-                  className="flex-1 bg-transparent text-sm text-ink placeholder-ink-faint outline-none resize-none max-h-24 overflow-y-auto disabled:opacity-50"
+                  className="flex-1 bg-transparent text-sm text-ink placeholder-ink-faint outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-surface-2 resize-none max-h-24 overflow-y-auto disabled:opacity-50"
                   style={{ minHeight: "20px" }}
                 />
                 <button
                   onClick={() => sendMessage(input)}
                   disabled={!input.trim() || loading}
                   className={clsx(
-                    "shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-all",
+                    "shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-colors",
                     input.trim() && !loading
                       ? "bg-accent text-white hover:bg-accent-hover"
                       : "bg-surface-3 text-ink-faint cursor-not-allowed"
@@ -371,7 +393,7 @@ export function ChatBot() {
         animate={open ? { scale: 1 } : { scale: [1, 1.05, 1] }}
         transition={open ? {} : { duration: 3, repeat: Infinity, repeatDelay: 5 }}
         className={clsx(
-          "fixed bottom-20 right-4 z-[300] md:bottom-4",
+          "fixed bottom-20 right-4 z-300 md:bottom-4",
           "w-14 h-14 rounded-2xl shadow-2xl",
           "flex items-center justify-center",
           "transition-colors duration-200",

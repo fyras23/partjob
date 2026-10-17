@@ -56,19 +56,31 @@ export default function ApplicantsPage() {
 
   async function review(appId: string, status: "APPROVED" | "REJECTED") {
     setActionLoading(appId);
-    const res = await fetch(`/api/recruiter/applications/${appId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-    setActionLoading(null);
+    try {
+      const res = await fetch(`/api/recruiter/applications/${appId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status,
+          ...(status === "REJECTED" && { reason: rejectReason.trim() }),
+        }),
+      });
+      const data = await res.json().catch(() => null);
 
-    if (!res.ok) { toast.error("Action failed. Please try again."); return; }
+      if (!res.ok) {
+        toast.error(data?.error ?? "Could not update this application. Please try again.");
+        return;
+      }
 
-    setApps((prev) => prev.map((a) => a.id === appId ? { ...a, status } : a));
-    setRejecting(null);
-    setRejectReason("");
-    toast.success(status === "APPROVED" ? "Applicant approved." : "Applicant rejected.");
+      setApps((prev) => prev.map((a) => a.id === appId ? { ...a, status } : a));
+      setRejecting(null);
+      setRejectReason("");
+      toast.success(status === "APPROVED" ? "Applicant approved." : "Applicant rejected.");
+    } catch {
+      toast.error("Could not reach the server. The application was not updated.");
+    } finally {
+      setActionLoading(null);
+    }
   }
 
   async function submitRating(appId: string) {
@@ -99,9 +111,9 @@ export default function ApplicantsPage() {
   if (loading) {
     return (
       <div className="flex flex-col gap-4 max-w-3xl">
-        <div className="h-8 w-48 bg-border rounded-[2px] animate-pulse mb-2" />
+        <div className="h-8 w-48 bg-border rounded-xs animate-pulse mb-2" />
         {[1, 2, 3].map((i) => (
-          <div key={i} className="h-20 bg-surface border border-border rounded-[8px] animate-pulse" />
+          <div key={i} className="h-20 bg-surface border border-border rounded-lg animate-pulse" />
         ))}
       </div>
     );
@@ -138,7 +150,7 @@ export default function ApplicantsPage() {
             });
 
             return (
-              <div key={app.id} className="bg-surface border border-border rounded-[8px] overflow-hidden">
+              <div key={app.id} className="bg-surface border border-border rounded-lg overflow-hidden">
                 {/* Summary row */}
                 <button
                   className="w-full flex items-center gap-4 px-4 py-4 text-left hover:bg-bg/50 transition-colors"
@@ -238,6 +250,7 @@ export default function ApplicantsPage() {
                                 variant="destructive"
                                 onClick={() => review(app.id, "REJECTED")}
                                 loading={actionLoading === app.id}
+                                disabled={!rejectReason.trim()}
                               >
                                 Confirm rejection
                               </Button>

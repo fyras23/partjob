@@ -64,7 +64,7 @@ export async function PATCH(
       : `Application update — ${application.post.title}`,
     message: parsed.data.status === "APPROVED"
       ? "Congratulations! Your application was approved. You can now message the recruiter."
-      : "The recruiter has reviewed your application.",
+      : `The recruiter reviewed your application and did not select you.${parsed.data.reason ? ` Reason: ${parsed.data.reason}` : ""}`,
   });
 
   return NextResponse.json(updated);
